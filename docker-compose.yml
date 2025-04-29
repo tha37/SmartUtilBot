@@ -1,43 +1,10 @@
-version: "3.9"
-
 services:
   smarttoolbot:
     build: .
     container_name: smarttoolbot
     ports:
       - "8000:8000"
-    environment:
-      # Environment variables (override or fill if needed)
-      API_ID: "your_api_id_here"
-      API_HASH: "your_api_hash_here"
-      BOT_TOKEN: "your_bot_token_here"
-      SESSION_STRING: "your_session_string_here"
-      ADMIN_IDS: "1234567890,987654321"
-      OWNERS: "1234567890"
-      DEFAULT_LIMIT: 5000
-      ADMIN_LIMIT: 10000
-      MONGO_URL: "your_mongo_url"
-      DATABASE_URL: "your_database_url"
-      DB_URL: "your_db_url"
-      GOOGLE_API_KEY: "your_google_api_key"
-      GROQ_API_KEY: "your_groq_api_key"
-      DOMAIN_API_KEY: "your_domain_api_key"
-      LOCATIONIQ_API_KEY: "your_locationiq_key"
-      IPINFO_API_TOKEN: "your_ipinfo_token"
-      NEWS_API_KEY: "your_news_api_key"
-      BIN_KEY: "your_bin_key"
-      GPT_API_KEY: "your_openai_key"
-      TEXT_MODEL: "your_model"
-      UPDATE_CHANNEL_URL: "https://t.me/YourChannel"
-      PROFILE_ERROR_URL: "https://t.me/BotsDevZone/243"
-      COMMAND_PREFIX: "!|.|#|,|/"
-      DEVELOPER_USER_ID: "1234567890"
-      MAX_IMAGE_SIZE: 5242880
-      OCR_WORKER_URL: "https://your-ocr-url"
-      TEXT_API_URL: "https://your-text-url"
-      IMAGE_API_URL: "https://your-img-url"
-      YT_COOKIES_PATH: "./cookies/ItsSmartToolBot.txt"
-
+    env_file:
+      - .env
     volumes:
       - .:/app
-    restart: always
