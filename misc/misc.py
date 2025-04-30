@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 import os
 import time
 import subprocess
