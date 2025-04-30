@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import UPDATE_CHANNEL_URL
 from pyrogram.enums import ParseMode
