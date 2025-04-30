@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 from .mongo import user_activity_collection
 from .database import group_settings
 from .db import group_channel_bindings
