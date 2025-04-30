@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 from pyrogram import Client
 from utils import LOGGER
 from config import SESSION_STRING
