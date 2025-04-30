@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 from pymongo import MongoClient
 from utils import LOGGER
 from config import MONGO_URL
