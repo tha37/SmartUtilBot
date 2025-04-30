@@ -1,3 +1,6 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
+#This Script Mainly Based On https://github.com/abirxdhack/SmartPayBot
 import logging
 import uuid
 import hashlib
