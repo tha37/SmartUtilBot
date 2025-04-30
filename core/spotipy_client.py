@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials
 from config import SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET
