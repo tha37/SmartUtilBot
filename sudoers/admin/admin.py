@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.handlers import MessageHandler
