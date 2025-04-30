@@ -1,4 +1,5 @@
-from pyrogram.enums import ParseMode
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 from misc import handle_callback_query
 from utils import LOGGER, setup_settings_handler
 from modules import setup_modules_handlers
