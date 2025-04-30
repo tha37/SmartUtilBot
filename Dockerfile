@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 # Use an official Python image
 FROM python:3.9-slim-buster
 
