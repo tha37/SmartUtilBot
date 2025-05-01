@@ -234,7 +234,7 @@ To avoid errors related to YouTube sign-in requirements or bot protection, using
 
 This setup ensures reliable access to YouTube content without encountering sign-in or bot protection errors. 🚀
 
-# 🌟 Handling Scrapper Utils Errors with `SESSION_STRING` 💫
+## 🌟 Handling Scrapper Utils Errors with `SESSION_STRING` 💫
 
 **Avoid common user client errors by generating a fresh `SESSION_STRING` using [ItsSmartToolBot](https://t.me/ItsSmartToolBot) 🌐**
 
