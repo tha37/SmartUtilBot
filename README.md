@@ -78,11 +78,11 @@
 
 ## Requirements 💥🌟
 
-- **Python 3.9+** 🐍  
-  The power of Python is required to run this application seamlessly.  
+- **Python 3.9 Or Above** 🐍  
+- **Note:** `Python Version 3.9-3.12 Full Supported 3.13 Maybe But Not Tested`
 
 - **3 MongoDB URLs** 🌐  
-  Needed for 3 separate Mongo Clients 🗄️. Ensure your database URLs are correctly configured.  
+  Need 3 MONGO_URL Must For 3 DB Client So Thats A Mandatory VARS
 
 - **Supported OS** ❄️  
   - Ubuntu 22.04+ 💫  
@@ -98,7 +98,9 @@
 - **Additional Info** ✘  
   Check the **Vars List** for more configuration details and setup instructions!  
 
-## Installation 🚀
+## Installation
+
+Follow these steps to set up and deploy **SmartUtilBot**:
 
 1. **Clone the Repository**:
    ```bash
@@ -106,17 +108,25 @@
    cd SmartUtilBot
    ```
 
-2. **Install Dependencies**:
+2. **Install FFmpeg**:
+   FFmpeg is required for media processing and must be installed using your system's package manager. For Ubuntu/Debian, run:
+   ```bash
+   sudo apt update
+   sudo apt install ffmpeg
+   ```
+   **Note**: FFmpeg cannot be installed via pip.
+
+3. **Install Python Dependencies**:
    ```bash
    pip3 install -r requirements.txt
    ```
 
-3. **Set Up Environment Variables**:
-   - Create a `.env` file in the project root or directly edit `config.py`.
-   - You can fill values in either the `.env` file or `config.py` based on your preference. ✨
-   - Refer to the `.env` example below and the Mandatory/Optional Vars sections.
+4. **Set Up Environment Variables**:
+   - Create a `.env` file in the project root or edit `config.py` directly.  
+   - Populate the required variables (see [Environment Variables](#environment-variables)).  
+   - Refer to the `.env` example and the Mandatory/Optional Vars sections for guidance.
 
-4. **Deploy the Bot**:
+5. **Deploy the Bot**:
    - **Direct Deployment**:
      ```bash
      python3 main.py
@@ -126,12 +136,12 @@
      screen -S SmartUtilBot
      python3 main.py
      ```
-     To detach from the screen session, press `Ctrl+A` followed by `D`. To reattach, use:
+     To detach from the screen session, press `Ctrl+A` followed by `D`. To reattach:
      ```bash
      screen -r SmartUtilBot
      ```
    - **Deploy with Docker Compose**:
-     Make sure you have Docker and Docker Compose installed on your system. The bot will run in a containerized environment with all dependencies automatically managed.
+     Ensure Docker and Docker Compose are installed. The bot will run in a containerized environment with dependencies managed automatically.
      ```bash
      docker compose up --build --remove-orphans
      ```
@@ -144,25 +154,25 @@
 
 ## Environment Variables ⚙️
 
-### Mandatory Vars ⁉️
+### Mandatory Vars To Connect The Bot To Telegram Server ⁉️
 
 1. `API_ID` - Obtain from [my.telegram.org](https://my.telegram.org/). 🔐
 2. `API_HASH` - Obtain from [my.telegram.org](https://my.telegram.org/). 🔐
 3. `BOT_TOKEN` - Create a bot via [@BotFather](https://telegram.dog/BotFather). 🤖
 4. `SESSION_STRING` - Open [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) and use the `/pyro` command, then follow the instructions. 📲
 5. `OPENAI_API_KEY` - Obtain from [OpenAI API Console](https://platform.openai.com/account/api-keys). 🧠
+6. `MONGO_URL` - MongoDB database URL for storing user and group Database, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
+7. `DATABASE_URL` - Alternative MongoDB database URL For ChannelHelp, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
+8. `DB_URL` - Additional MongoDB database URL FOr GroupHelp, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
 
-### Recommended Optional Vars 🌟
+### Recommended Optional Vars For The Core Utils🌟
 
-1. `MONGO_URL` - MongoDB database URL for storing user and group settings, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
-2. `DATABASE_URL` - Alternative MongoDB database URL, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
-3. `DB_URL` - Additional MongoDB database URL, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
-4. `GOOGLE_API_KEY` - For Google Gemini AI features, obtain from [Google AI Studio](https://aistudio.google.com/). 🧠
-5. `GROQ_API_KEY` - For Groq AI models, obtain from [Groq API Console](https://console.groq.com/). 🧠
-6. `ADMIN_IDS` - Comma-separated Telegram user IDs for admin access, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👑
-7. `OWNER_IDS` - Comma-separated Telegram user IDs for owner access, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👑
+1. `GOOGLE_API_KEY` - For Google Gemini AI features, obtain from [Google AI Studio](https://aistudio.google.com/). 🧠
+2. `GROQ_API_KEY` - For Groq AI models, obtain from [Groq API Console](https://console.groq.com/). 🧠
+3. `ADMIN_IDS` - Comma-separated Telegram user IDs for admin access, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👑
+4. `OWNER_IDS` - Comma-separated Telegram user IDs for owner access, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👑
 
-### Optional Vars ❄️
+### Optional Vars For The Utils ❄️
 
 1. `SPOTIFY_CLIENT_ID` - For Spotify features, obtain from [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/). 🎶
 2. `SPOTIFY_CLIENT_SECRET` - For Spotify features, obtain from [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/). 🎶
@@ -170,28 +180,27 @@
 4. `IPINFO_API_TOKEN` - For IP geolocation, obtain from [IPinfo](https://ipinfo.io/). 🌍
 5. `NEWS_API_KEY` - For news updates, obtain from the specified news API provider. 📰
 6. `BIN_KEY` - For BIN lookup, obtain from [HandyAPI](https://handyapi.com/). 💳
-7. enlivened by the prospect of uncovering hidden gems in the digital landscape. 🌐
-8. `UPDATE_CHANNEL_URL` - Telegram channel URL for bot updates. 📢
-9. `DEVELOPER_USER_ID` - Telegram user ID of the bot developer, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👨‍💻
-10. `PROFILE_ERROR_URL` - Fallback image URL for users without a profile photo. 🖼️
-11. `OCR_WORKER_URL` - Custom OCR API endpoint for text extraction. 📄
-12. `TEXT_API_URL` - Custom text processing API endpoint. 📝
-13. `IMAGE_API_URL` - Custom image processing API endpoint. 🖼️
-14. `YT_COOKIES_PATH` - Path to YouTube cookies file for media downloads (default: `SmartUtilBot/cookies.txt`). 🍪
-15. `CC_SCRAPPER_LIMIT` - Limit for credit card scraping (default: 5000). 💳
-16. `SUDO_CCSCR_LIMIT` - Sudo user credit card scraping limit (default: 10000). 💳
-17. `MULTI_CCSCR_LIMIT` - Multi-user credit card scraping limit (default: 2000). 💳
-18. `MAIL_SCR_LIMIT` - Email scraping limit (default: 10000). 📧
-19. `SUDO_MAILSCR_LIMIT` - Sudo user email scraping limit (default: 15000). 📧
-20. `CC_GEN_LIMIT` - Credit card generation limit (default: 2000). 💳
-21. `MULTI_CCGEN_LIMIT` - Multi-user credit card generation limit (default: 5000). 💳
-22. `DOMAIN_CHK_LIMIT` - Domain check limit (default: 20). 🌐
-23. `PROXY_CHECK_LIMIT` - Proxy check limit (default: 20). 🛡️
-24. `IMGAI_SIZE_LIMIT` - Max image size for AI processing (default: 5MB). 🖼️
-25. `MAX_TXT_SIZE` - Max text file size (default: 15MB). 📝
-26. `MAX_VIDEO_SIZE` - Max video file size (default: 2GB). 📹
-27. `VIDEO_RESOLUTION` - YouTube video resolution (default: 1280x720). 📺
-28. `COMMAND_PREFIX` - Command prefixes (default: `!|.|#|,|/`). ⚙️
+7. `UPDATE_CHANNEL_URL` - Telegram channel URL for bot updates. 📢
+8. `DEVELOPER_USER_ID` - Telegram user ID of the bot developer, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👨‍💻
+9. `PROFILE_ERROR_URL` - Fallback image URL for users without a profile photo. 🖼️
+10. `OCR_WORKER_URL` - Custom OCR API endpoint for text extraction. 📄
+11. `TEXT_API_URL` - Custom text processing API endpoint. 📝
+12. `IMAGE_API_URL` - Custom image processing API endpoint. 🖼️
+13. `YT_COOKIES_PATH` - Path to YouTube cookies file for media downloads (default: `SmartUtilBot/cookies.txt`). 🍪
+14. `CC_SCRAPPER_LIMIT` - Limit for credit card scraping (default: 5000). 💳
+15. `SUDO_CCSCR_LIMIT` - Sudo user credit card scraping limit (default: 10000). 💳
+16. `MULTI_CCSCR_LIMIT` - Multi-user credit card scraping limit (default: 2000). 💳
+17. `MAIL_SCR_LIMIT` - Email scraping limit (default: 10000). 📧
+18. `SUDO_MAILSCR_LIMIT` - Sudo user email scraping limit (default: 15000). 📧
+19. `CC_GEN_LIMIT` - Credit card generation limit (default: 2000). 💳
+20. `MULTI_CCGEN_LIMIT` - Multi-user credit card generation limit (default: 5000). 💳
+21. `DOMAIN_CHK_LIMIT` - Domain check limit (default: 20). 🌐
+22. `PROXY_CHECK_LIMIT` - Proxy check limit (default: 20). 🛡️
+23. `IMGAI_SIZE_LIMIT` - Max image size for AI processing (default: 5MB). 🖼️
+24. `MAX_TXT_SIZE` - Max text file size (default: 15MB). 📝
+25. `MAX_VIDEO_SIZE` - YouTube Downloader Max video file size (default: 2GB). 📹
+26. `VIDEO_RESOLUTION` - YouTube Downloader video resolution (default: 1280x720). 📺
+27. `COMMAND_PREFIX` - Command prefixes (default: `!|.|#|,|/`). ⚙️
 
 ## Handling YouTube Download Errors with Cookies 🍪
 
@@ -203,28 +212,72 @@ To avoid errors related to YouTube sign-in requirements or bot protection, using
    - Create a new Chrome profile to manage your bot's cookies securely. 🖥️
 
 2. **Install a Cookie Management Extension**:
-   - Use a browser extension like "Cookie Editor" to manage and export cookies. 🔧
+   - Use a browser extension like [Cookie Editor](https://cookie-editor.com) to manage and export cookies. 🔧
 
 3. **Export Cookies from YouTube**:
    - Log into YouTube using your new Chrome profile. 📺
    - Use the cookie extension to export cookies in **Netscape format**. 📄
 
 4. **Save the Cookies File**:
-   - Save the exported cookies as `cookies.txt` in the `SmartUtilBot/cookies.txt` directory. 📂
+   - Save the exported cookies as `ItsSmartToolBot.txt` in the `SmartUtilBot/ItsSmartToolBot.txt` directory. 📂
 
 ### Managing Cookies 💡
 
 - **Cookie Expiry**:
    - YouTube cookies may expire or become invalid. If you encounter download issues, export and replace the cookies file with a fresh one. 🔄
+   - Don't Play Videos In Your Mobile Or PC Through The Account Which Cookie You Exported. Cause Such Activity Will Change Cookie's Values.
+   - Don't Sign Out From The Gmail In Your PC Or Mobile From The Browser Of App From Which You Exported Cookies.
+   - Don't Restart Or Turn On Off Your Bot Frequently To Refrain From **COOKIE EXPIRY** .
 - **Cookie Depletion**:
    - Avoid frequent bot restarts or excessive YouTube requests to prevent early cookie expiry. ⚠️
    - Monitor your bot's activity to ensure cookies remain valid. 👀
 
 This setup ensures reliable access to YouTube content without encountering sign-in or bot protection errors. 🚀
 
+# 🌟 Handling Scrapper Utils Errors with `SESSION_STRING` 💫
+
+**Avoid common user client errors by generating a fresh `SESSION_STRING` using [ItsSmartToolBot](https://t.me/ItsSmartToolBot) 🌐**
+
+## ✨ Quick Steps to Generate `SESSION_STRING`
+
+1. 🚀 Go to 👉 [@ItsSmartToolBot](https://t.me/ItsSmartToolBot)  
+2. 💬 Send `/pyro` to start Pyrogram session generation  
+3. 🆔 Enter your **API ID** from [my.telegram.org](https://my.telegram.org)  
+4. 🔐 Enter your **API HASH**  
+5. 📞 Input your **phone number** in international format (e.g., +880...) 🇧🇩  
+6. ✅ Send the **OTP** you receive (e.g., `AB2 BC4 CD5 EF6 GH6`) — the bot auto-extracts it as `24566`  
+7. 💾 Check **Saved Messages** for your `SESSION_STRING`  
+8. 🛠️ Add it to your `.env` or `config.py` 
+
+---
+
+## ❄️ Important Notice: Avoid Frequent Restarts ⚠️
+
+Frequent restarts using user accounts can trigger Telegram's security system 👀
+
+### 💥 You Might Face:
+- 🚫 Forced logout of your account  
+- ❌ `406 AUTH_KEY_DUPLICATED` error  
+- ⚠️ Temporary bans or session invalidation  
+
+### ⭐️ To Stay Safe:
+- Minimize restarts  
+- Always use a fresh session if errors appear  
+- Prefer bot accounts for heavy or persistent tasks  
+
+---
+
+## ✅ Pro Tips
+
+- Fresh sessions fix 90% of scraper issues  
+- Never share your `SESSION_STRING` publicly  
+- Use `.env` for secure config management
+
+---
+
 ## Contributing 👨‍💻
 
-Contributions are welcome! Please follow these steps:
+**Contributions are welcome! Please follow these steps:**
 
 1. Fork the repository. 🍴
 2. Create a new branch (`git checkout -b feature-branch`). 🌿
@@ -235,12 +288,18 @@ Contributions are welcome! Please follow these steps:
 ## Project Contributors
 
 ### Main Author 🧑‍💻
-- **Name:** Abir Arafat Chawdhury
-- **Telegram:** [@TheSmartDev](https://t.me/ISmartDevs)
+- The Main Author Is Abir Arafat Chawdhury Who Made The Base Development Of [SmartUtilBot](t.me/SmartUtlBot)
+- **Name:** Abir Arafat Chawdhury 🌟
+- **Telegram Contact:** [@ISmartDevs](https://t.me/ISmartDevs) ✅
+- **Telegram Channel:** [@TheSmartDev](https://t.me/TheSmartDev) ✅
+- **Bot:** [@ItsSmartToolBot](t.me/ItsSmartToolBot) ✅
 
 ### Contributing Author 🧑‍💻
+- The Contributor For Many Features Adding Scripts AND APIS He Is Just A **PRO**
 - **Name:** Neo Ko Ko Ang
-- **Telegram:** [@nkka404](https://t.me/nkka404)
+- **Telegram Contact:** [@nkka404](https://t.me/nkka404) ✅
+- **Telegram Channel:** [@premium_channel_404](https://t.me/premium_channel_404) ✅
+- **Bot:** [@SmartTool404Bot](https://t.me/SmartTool404Bot) ✅
 
 For inquiries or feedback, please feel free to reach out via Telegram.
 
