@@ -8,7 +8,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from pyrogram.enums import ParseMode, ChatType
+from pyrogram.enums import ParseMode, ChatType, ChatAction
 from config import COMMAND_PREFIX, PROFILE_ERROR_URL
 
 # Configure logging
@@ -72,8 +72,8 @@ async def download_default_avatar(client, url):
             return None
 
 async def generate_quote(client: Client, message: Message):
-    # Send loading message
-    loading_message = await client.send_message(message.chat.id, "**Creating Custom Sticker**", parse_mode=ParseMode.MARKDOWN)
+    # Trigger 'choosing a sticker' animation
+    await client.send_chat_action(message.chat.id, ChatAction.CHOOSE_STICKER)
     
     command_parts = message.text.split()
     
@@ -94,7 +94,7 @@ async def generate_quote(client: Client, message: Message):
             # Important: Use the replied user's profile info
             user = replied_message.from_user
         else:
-            await loading_message.edit_text("**❌ The replied message must contain text.**", parse_mode=ParseMode.MARKDOWN)
+            await client.send_message(message.chat.id, "**❌ The replied message must contain text.**", parse_mode=ParseMode.MARKDOWN)
             return
     
     # CASE 2: Command with text (/q some text) - Use command user's details
@@ -104,7 +104,7 @@ async def generate_quote(client: Client, message: Message):
     
     # CASE 3: Command with no text and no reply
     else:
-        await loading_message.edit_text("**❌ Please provide text after /q or reply to a text message.**", parse_mode=ParseMode.MARKDOWN)
+        await client.send_message(message.chat.id, "**❌ Please provide text after /q or reply to a text message.**", parse_mode=ParseMode.MARKDOWN)
         return
     
     # Get user details
@@ -143,7 +143,7 @@ async def generate_quote(client: Client, message: Message):
         
         if avatar_file_path is None:
             logger.error("Failed to download default avatar")
-            await loading_message.edit_text("**❌ Failed to fetch default profile image**", parse_mode=ParseMode.MARKDOWN)
+            await client.send_message(message.chat.id, "**❌ Failed to fetch default profile image**", parse_mode=ParseMode.MARKDOWN)
             return
     
     try:
@@ -201,15 +201,14 @@ async def generate_quote(client: Client, message: Message):
         with open(file_path, 'wb') as f:
             f.write(buffer)
         
-        # Delete loading message and send the sticker
-        await loading_message.delete()
+        # Send the sticker
         await client.send_sticker(message.chat.id, file_path)
         logger.info("Sticker sent successfully")
     
     except Exception as e:
-        # Log the error and edit loading message
+        # Log the error and send error message
         logger.error(f"Error generating quote: {e}")
-        await loading_message.edit_text("**Sorry Bro Sticker Create API Dead**", parse_mode=ParseMode.MARKDOWN)
+        await client.send_message(message.chat.id, "**Sorry Bro Sticker Create API Dead**", parse_mode=ParseMode.MARKDOWN)
     
     finally:
         # Clean up temporary files
