@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode, ChatType, ChatAction
+from PIL import Image
 from config import COMMAND_PREFIX, PROFILE_ERROR_URL
 
 # Configure logging
@@ -71,6 +72,31 @@ async def download_default_avatar(client, url):
             logger.error(f"Error downloading default avatar: {e}")
             return None
 
+async def convert_photo_to_sticker(photo_path):
+    """Convert a photo to WebP sticker format"""
+    try:
+        logger.info(f"Converting photo to sticker: {photo_path}")
+        # Open the image
+        img = Image.open(photo_path)
+        
+        # Resize to Telegram sticker size (512x512 max dimension)
+        img.thumbnail((512, 512), Image.Resampling.LANCZOS)
+        
+        # Create new square image with transparent background
+        square_size = max(img.size)
+        sticker = Image.new('RGBA', (square_size, square_size), (0, 0, 0, 0))
+        offset = ((square_size - img.size[0]) // 2, (square_size - img.size[1]) // 2)
+        sticker.paste(img, offset)
+        
+        # Save as WebP
+        sticker_path = f"sticker_{os.urandom(4).hex()}.webp"
+        sticker.save(sticker_path, 'WEBP', quality=95)
+        logger.info(f"Sticker created: {sticker_path}")
+        return sticker_path
+    except Exception as e:
+        logger.error(f"Failed to convert photo to sticker: {e}")
+        return None
+
 async def generate_quote(client: Client, message: Message):
     # Trigger 'choosing a sticker' animation
     await client.send_chat_action(message.chat.id, ChatAction.CHOOSE_STICKER)
@@ -87,6 +113,44 @@ async def generate_quote(client: Client, message: Message):
     full_name = None
     avatar_file_path = None
     
+    # NEW CASE: Reply to a photo with just the command (/q) - Convert photo to sticker
+    if replied_message and len(command_parts) == 1 and replied_message.photo:
+        try:
+            logger.info("Processing photo to sticker conversion")
+            # Ensure chat action is visible with a small delay
+            await asyncio.sleep(1)  # Brief delay to allow chat action to display
+            # Download the photo
+            photo_path = await client.download_media(replied_message.photo.file_id)
+            if not photo_path:
+                logger.error("Failed to download photo")
+                await client.send_message(message.chat.id, "**Failed to generate sticker.**", parse_mode=ParseMode.MARKDOWN)
+                return
+            
+            # Convert photo to sticker
+            sticker_path = await convert_photo_to_sticker(photo_path)
+            if not sticker_path:
+                logger.error("Failed to convert photo to sticker")
+                await client.send_message(message.chat.id, "**Failed to generate sticker.**", parse_mode=ParseMode.MARKDOWN)
+                return
+            
+            # Send the sticker
+            await client.send_sticker(message.chat.id, sticker_path)
+            logger.info("Photo sticker sent successfully")
+            
+        except Exception as e:
+            logger.error(f"Error converting photo to sticker: {e}")
+            await client.send_message(message.chat.id, "**Failed to generate sticker.**", parse_mode=ParseMode.MARKDOWN)
+        
+        finally:
+            # Clean up temporary files
+            if photo_path and os.path.exists(photo_path):
+                os.remove(photo_path)
+                logger.info(f"Removed photo file: {photo_path}")
+            if sticker_path and os.path.exists(sticker_path):
+                os.remove(sticker_path)
+                logger.info(f"Removed sticker file: {sticker_path}")
+        return
+    
     # CASE 1: Reply to message with just the command (/q) - Use replied user's profile and text
     if replied_message and len(command_parts) == 1:
         if replied_message.text:
@@ -94,7 +158,7 @@ async def generate_quote(client: Client, message: Message):
             # Important: Use the replied user's profile info
             user = replied_message.from_user
         else:
-            await client.send_message(message.chat.id, "**❌ The replied message must contain text.**", parse_mode=ParseMode.MARKDOWN)
+            await client.send_message(message.chat.id, "**Failed to generate sticker.**", parse_mode=ParseMode.MARKDOWN)
             return
     
     # CASE 2: Command with text (/q some text) - Use command user's details
@@ -143,7 +207,7 @@ async def generate_quote(client: Client, message: Message):
         
         if avatar_file_path is None:
             logger.error("Failed to download default avatar")
-            await client.send_message(message.chat.id, "**❌ Failed to fetch default profile image**", parse_mode=ParseMode.MARKDOWN)
+            await client.send_message(message.chat.id, "**Failed to generate sticker.**", parse_mode=ParseMode.MARKDOWN)
             return
     
     try:
