@@ -4,4 +4,4 @@ from .mongo import user_activity_collection
 from .database import group_settings
 from .db import group_channel_bindings
 from .spotipy_client import spotify
-from .start_handler import setup_start_handler
+from .start import setup_start_handler
