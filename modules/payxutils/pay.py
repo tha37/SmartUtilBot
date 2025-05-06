@@ -168,7 +168,7 @@ Let’s crush crashes and aim for legendary status together! 🏆🔥
             logger.info(f"✅ Invoice sent for {amount} stars to user {user_id} with payload {invoice_payload}")
         except Exception as e:
             logger.error(f"❌ Failed to generate invoice for user {user_id}: {str(e)}")
-            await client.edit_message_text(chat_id, loading_message.id, "❌Invoice Creation Failed Bruh!")
+            await client.edit_message_text(chat_id, loading_message.id, "**❌Invalid Amount Provided Bro!**")
         finally:
             active_invoices.pop(user_id, None)
 
@@ -191,7 +191,7 @@ Let’s crush crashes and aim for legendary status together! 🏆🔥
             await generate_invoice(client, message.chat.id, message.from_user.id, amount)
         else:
             # Invalid command
-            text = "**❌ Sorry Bro Wrong Input**"
+            text = "**❌ Sorry Bro Wrong Input Provided!**"
             await client.send_message(
                 chat_id=message.chat.id,
                 text=text,
