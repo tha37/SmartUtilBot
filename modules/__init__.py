@@ -1,7 +1,6 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 from config import BOT_TOKEN
-bot_token = BOT_TOKEN
 from .aixutils.ai import setup_ai_handler
 from .aixutils.dep import setup_dep_handler
 from .aixutils.gemi import setup_gem_handler
@@ -31,6 +30,7 @@ from .dlxutils.pin import setup_pinterest_handler
 from .dlxutils.spfy import setup_spotify_handler
 from .dlxutils.tik import setup_tt_handler
 from .dlxutils.yt import setup_yt_handler
+from .dlxutils.ig import setup_ig_handler
 from .eduxutils.gmr import setup_gmr_handler
 from .eduxutils.pron import setup_pron_handler
 from .eduxutils.spl import setup_spl_handler
@@ -71,8 +71,8 @@ from .wxutils.weather import setup_weather_handler
 from .ytxutils.ytag import setup_ytag_handlers
 from .ytxutils.yth import setup_yth_handler
 
-
 def setup_modules_handlers(app):
+    bot_token = BOT_TOKEN
     # Register all imported handlers
     setup_ai_handler(app)
     setup_dep_handler(app)
@@ -85,8 +85,8 @@ def setup_modules_handlers(app):
     setup_binf_handlers(app)
     setup_fcc_handler(app)
     setup_gen_handler(app)
-    setup_mbin_handler(app)
     setup_cln_handler(app)
+    setup_mbin_handler(app)
     setup_multi_handler(app)
     setup_topbin_handler(app)
     setup_voice_handler(app)
@@ -103,6 +103,7 @@ def setup_modules_handlers(app):
     setup_spotify_handler(app)
     setup_tt_handler(app)
     setup_yt_handler(app)
+    setup_ig_handler(app)
     setup_gmr_handler(app)
     setup_pron_handler(app)
     setup_spl_handler(app)
