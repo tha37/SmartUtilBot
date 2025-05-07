@@ -137,7 +137,7 @@ def setup_kang_handler(app: Client, bot_token: str):
         max_stickers = 120
         temp_files = []
 
-        temp_message = await message.reply_text("<b>Kanging this Sticker...✨</b>")
+        temp_message = await client.send_message(chat_id=message.chat.id, text="<b>Kanging this Sticker...✨</b>")
 
         # Find an available sticker pack
         while True:
@@ -149,7 +149,7 @@ def setup_kang_handler(app: Client, bot_token: str):
                 break
 
         if not message.reply_to_message:
-            await temp_message.edit_text("<b>Please reply to a sticker, image, or document to kang it!</b>")
+            await client.send_message(chat_id=message.chat.id, text="<b>Please reply to a sticker, image, or document to kang it!</b>")
             return
 
         # Get file ID
@@ -163,7 +163,7 @@ def setup_kang_handler(app: Client, bot_token: str):
         elif reply.animation:
             file_id = reply.animation.file_id
         else:
-            await temp_message.edit_text("<b>Please reply to a valid sticker, image, GIF, or document!</b>")
+            await client.send_message(chat_id=message.chat.id, text="<b>Please reply to a valid sticker, image, GIF, or document!</b>")
             return
 
         # Determine sticker format
@@ -188,13 +188,13 @@ def setup_kang_handler(app: Client, bot_token: str):
                 kang_file = await app.download_media(file_id, file_name="kangsticker.png")
             
             if not kang_file:
-                await temp_message.edit_text("<b>❌ Failed To Kang The Sticker</b>")
+                await client.send_message(chat_id=message.chat.id, text="<b>❌ Failed To Kang The Sticker</b>")
                 return
             
             temp_files.append(kang_file)
 
         except Exception as e:
-            await temp_message.edit_text(f"<b>❌ Failed To Kang The Sticker</b>")
+            await client.send_message(chat_id=message.chat.id, text="<b>❌ Failed To Kang The Sticker</b>")
             return
 
         # Select emoji
@@ -216,7 +216,7 @@ def setup_kang_handler(app: Client, bot_token: str):
                 temp_output = "compressed.webm"
                 processed_file = await process_gif_to_webm(kang_file, temp_output)
                 if not processed_file:
-                    await temp_message.edit_text("<b>❌ Failed To Kang The Sticker</b>")
+                    await client.send_message(chat_id=message.chat.id, text="<b>❌ Failed To Kang The Sticker</b>")
                     return
                 kang_file = temp_output
                 sticker_format = "webm"
@@ -226,13 +226,13 @@ def setup_kang_handler(app: Client, bot_token: str):
                 temp_output = "compressed.webm"
                 processed_file = await process_video_sticker(kang_file, temp_output)
                 if not processed_file:
-                    await temp_message.edit_text("<b>❌ Failed To Kang The Sticker</b>")
+                    await client.send_message(chat_id=message.chat.id, text="<b>❌ Failed To Kang The Sticker</b>")
                     return
                 kang_file = temp_output
                 temp_files.append(kang_file)
 
         except Exception as e:
-            await temp_message.edit_text(f"<b>❌ Failed To Kang The Sticker</b>")
+            await client.send_message(chat_id=message.chat.id, text="<b>❌ Failed To Kang The Sticker</b>")
             return
 
         # Add sticker to the pack
@@ -255,9 +255,9 @@ def setup_kang_handler(app: Client, bot_token: str):
                     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("View Sticker Pack", url=f"t.me/addstickers/{packname}")]])
                     await temp_message.edit_text(f"<b>New sticker pack created!</b>\n<b>Emoji:</b> {sticker_emoji}", reply_markup=keyboard)
                 except Exception as ce:
-                    await temp_message.edit_text(f"<b>❌ Failed To Kang The Sticker</b>")
+                    await client.send_message(chat_id=message.chat.id, text="<b>❌ Failed To Kang The Sticker</b>")
             else:
-                await temp_message.edit_text(f"<b>❌ Failed To Kang The Sticker</b>")
+                await client.send_message(chat_id=message.chat.id, text="<b>❌ Failed To Kang The Sticker</b>")
         
         finally:
             # Cleanup all temporary files
