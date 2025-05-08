@@ -46,7 +46,7 @@ def setup_img_handler(app: Client):
 
                 # Prepare media group
                 media_group = [
-                    InputMediaPhoto(image_paths[i], caption=f"🖼 **Prompt:** `{prompt}`\n\n**Here are the generated images.**")
+                    InputMediaPhoto(image_paths[i], caption=f"**Here are the generated images**")
                     if i == 0 else InputMediaPhoto(image_paths[i])
                     for i in range(len(image_paths))
                 ]
