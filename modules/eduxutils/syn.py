@@ -22,12 +22,33 @@ async def fetch_synonyms_antonyms(word: str) -> Tuple[List[str], List[str]]:
 def setup_syn_handler(app: Client):
     @app.on_message(filters.command(["syn", "synonym"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
     async def synonyms_handler(client: Client, message: Message):
-        if len(message.command) <= 1:
-            await client.send_message(message.chat.id, "**❌ Please Enter The Word To Get Synonyms And Antonyms**", parse_mode=ParseMode.MARKDOWN)
-            return
+        # Check if the message is a reply
+        if message.reply_to_message and message.reply_to_message.text:
+            word = message.reply_to_message.text.strip()
+            # Ensure reply contains a single word
+            if len(word.split()) != 1:
+                await client.send_message(
+                    message.chat.id,
+                    "**❌ Reply to a message with a single word to get synonyms and antonyms.**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+        else:
+            # Check if command has a single word
+            if len(message.command) <= 1 or len(message.command[1].split()) != 1:
+                await client.send_message(
+                    message.chat.id,
+                    "**❌ Provide a single word to get synonyms and antonyms.**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            word = message.command[1].strip()
 
-        word = message.command[1]
-        loading_message = await client.send_message(message.chat.id, "**Fetching Synonyms and Antonyms...**", parse_mode=ParseMode.MARKDOWN)
+        loading_message = await client.send_message(
+            message.chat.id,
+            "**Fetching Synonyms and Antonyms...**",
+            parse_mode=ParseMode.MARKDOWN
+        )
 
         try:
             synonyms, antonyms = await fetch_synonyms_antonyms(word)
@@ -41,4 +62,7 @@ def setup_syn_handler(app: Client):
 
             await loading_message.edit(response_text, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
-            await loading_message.edit(f"**Synonym Antonym API Dead**", parse_mode=ParseMode.MARKDOWN)
+            await loading_message.edit(
+                "**Synonym Antonym API Dead**",
+                parse_mode=ParseMode.MARKDOWN
+            )
