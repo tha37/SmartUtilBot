@@ -4,7 +4,6 @@ import os
 import io
 import logging
 import requests
-from PIL import Image
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from config import COMMAND_PREFIX
@@ -18,13 +17,18 @@ def setup_ai_handler(app: Client):
         try:
             loading_message = await client.send_message(message.chat.id, "**🔍 Smart AI ✨ is thinking... Please wait! ✨**")
 
-            # Check if the message contains a prompt
-            if len(message.text.strip()) <= 5:
+            # Check if the message contains a prompt or is a reply
+            prompt = None
+            if message.reply_to_message and message.reply_to_message.text:
+                # If the message is a reply, use the replied message's text as the prompt
+                prompt = message.reply_to_message.text
+            elif len(message.text.strip()) > 5:
+                # If the message contains text after the command, use it as the prompt
+                prompt = message.text.split(maxsplit=1)[1]
+
+            if not prompt:
                 await client.edit_message_text(message.chat.id, loading_message.id, "**Please Provide A Prompt For SmartAi✨ Response**")
                 return
-
-            # Extract the prompt from the message
-            prompt = message.text.split(maxsplit=1)[1]
 
             # Send the prompt to the custom API and get the response
             response = requests.get(API_URL, params={"prompt": prompt})
@@ -41,5 +45,4 @@ def setup_ai_handler(app: Client):
         except Exception as e:
             logging.error(f"Error during text generation: {e}")
             if loading_message:
-                await client.edit_message_text(message.chat.id, loading_message.id, "**🔍 Smart AI ✨ API Dead**")
-
+                await client.edit_message_text(message.chat.id, loading_message.id, "**🔍Sorry Bro Smart AI ✨ API Dead**")
