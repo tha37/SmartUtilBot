@@ -23,11 +23,19 @@ def setup_gem_handler(app: Client):
         try:
             loading_message = await client.send_message(message.chat.id, "**🔍GeminiAI is thinking, Please Wait✨**")
 
-            if len(message.text.strip()) <= 5:
+            # Extract prompt from the command or reply
+            prompt = None
+            if message.reply_to_message and message.reply_to_message.text:
+                # If the message is a reply, use the replied message's text as the prompt
+                prompt = message.reply_to_message.text
+            elif len(message.text.strip()) > 5:
+                # If the message contains text after the command, use it as the prompt
+                prompt = message.text.split(maxsplit=1)[1]
+
+            if not prompt:
                 await client.edit_message_text(message.chat.id, loading_message.id, "**Please Provide A Prompt For GeminiAI✨ Response**")
                 return
 
-            prompt = message.text.split(maxsplit=1)[1]
             response = requests.get(TEXT_API_URL, params={"prompt": prompt})
             response.raise_for_status()
             
@@ -103,7 +111,7 @@ def setup_gem_handler(app: Client):
                 else:
                     await client.send_message(
                         chat_id=message.chat.id,
-                        text=f"**Here Is The Analysis From Your Image**\n\n{analysis}"
+                        text=f"{analysis}"
                     )
 
             except requests.exceptions.Timeout:
