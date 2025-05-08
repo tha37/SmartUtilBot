@@ -9,34 +9,24 @@ from pyrogram.handlers import MessageHandler
 from config import COMMAND_PREFIX
 
 async def fetch_pronunciation_info(word):
-    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+    url = f"https://abirthetech.serv00.net/pr.php?prompt={word}"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             if response.status != 200:
                 return None
             try:
                 result = await response.json()
-            except ValueError:
+                pronunciation_info = result['response']
+                return {
+                    "word": pronunciation_info['Word'],
+                    "breakdown": pronunciation_info['- Breakdown'],
+                    "pronunciation": pronunciation_info['- Pronunciation'],
+                    "stems": pronunciation_info['Word Stems'].split(", "),
+                    "definition": pronunciation_info['Definition'],
+                    "audio_link": pronunciation_info['Audio']
+                }
+            except (ValueError, KeyError):
                 return None
-            if not result or isinstance(result, dict):
-                return None
-            data = result[0]
-            definition = data['meanings'][0]['definitions'][0]['definition']
-            stems = [meaning['partOfSpeech'] for meaning in data['meanings']]
-            audio_link = None
-            for phonetic in data['phonetics']:
-                if phonetic['audio']:
-                    audio_link = phonetic['audio']
-                    break
-            pronunciation_info = {
-                "word": word.capitalize(),
-                "breakdown": word,
-                "pronunciation": "",
-                "stems": stems,
-                "definition": definition,
-                "audio_link": audio_link
-            }
-            return pronunciation_info
 
 async def pronunciation_check(client: Client, message: Message):
     # Check if the message is a reply
@@ -64,7 +54,7 @@ async def pronunciation_check(client: Client, message: Message):
 
     checking_message = await client.send_message(
         message.chat.id,
-        "**Checking Pronunciation...**",
+        "**Checking Pronunciation...✨**",
         parse_mode=ParseMode.MARKDOWN
     )
     pronunciation_info = await fetch_pronunciation_info(word)
@@ -77,18 +67,18 @@ async def pronunciation_check(client: Client, message: Message):
 
     audio_filename = None
     if pronunciation_info['audio_link']:
-        audio_filename = f"{word}.mp3"
+        audio_filename = f"Smart Tool ⚙️ {word}.mp3"
         async with aiohttp.ClientSession() as session:
             async with session.get(pronunciation_info['audio_link']) as response:
                 with open(audio_filename, 'wb') as f:
                     f.write(await response.read())
 
     caption = (
-        f"Word: {pronunciation_info['word']}\n"
-        f"- Breakdown: {pronunciation_info['breakdown']}\n"
-        f"- Pronunciation: {pronunciation_info['pronunciation']}\n\n"
-        f"Word Stems:\n{', '.join(pronunciation_info['stems'])}\n\n"
-        f"Definition:\n{pronunciation_info['definition']}"
+        f"**Word:** {pronunciation_info['word']}\n"
+        f"- **Breakdown:** {pronunciation_info['breakdown']}\n"
+        f"- **Pronunciation:** {pronunciation_info['pronunciation']}\n\n"
+        f"**Word Stems:**\n{', '.join(pronunciation_info['stems'])}\n\n"
+        f"**Definition:**\n{pronunciation_info['definition']}"
     )
 
     if audio_filename:
