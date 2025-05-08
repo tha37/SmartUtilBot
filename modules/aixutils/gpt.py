@@ -27,7 +27,7 @@ async def fetch_gpt_response(prompt, model):
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 100,
+            "max_tokens": 500,
             "n": 1,
             "stop": None,
             "temperature": 0.5
@@ -57,11 +57,20 @@ def setup_gpt_handlers(app: Client):
     async def gpt_handler(client, message):
         logger.info(f"Received GPT command from user {message.from_user.id} in chat {message.chat.id}")
         try:
-            if len(message.command) <= 1:
+            # Extract prompt from the command or reply
+            prompt = None
+            if message.reply_to_message and message.reply_to_message.text:
+                # If the message is a reply, use the replied message's text as the prompt
+                prompt = message.reply_to_message.text
+            elif len(message.command) > 1:
+                # If the message contains text after the command, use it as the prompt
+                prompt = " ".join(message.command[1:])
+
+            if not prompt:
                 logger.warning("No prompt provided in GPT command")
                 await client.send_message(message.chat.id, "**Please Provide A Prompt For ChatGPTAI✨ Response**", parse_mode=ParseMode.MARKDOWN)
                 return
-            prompt = " ".join(message.command[1:])
+
             logger.info(f"Processing prompt: {prompt}")
             loading_message = await client.send_message(message.chat.id, "**ChatGPT 3.5 Is Thinking✨**", parse_mode=ParseMode.MARKDOWN)
             response_text = await fetch_gpt_response(prompt, "gpt-4o-mini")
