@@ -1,6 +1,6 @@
 # Copyright @ISmartDevs
 # Channel t.me/TheSmartDev
-import requests
+import aiohttp
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
@@ -8,29 +8,39 @@ from pyrogram.handlers import MessageHandler
 from config import COMMAND_PREFIX
 
 async def check_grammar(text):
-    url = "https://api.languagetool.org/v2/check"
-    data = {
-        'text': text,
-        'language': 'en-US'
-    }
-    response = requests.post(url, data=data)
-    result = response.json()
-    corrected_text = text
-    for match in result['matches']:
-        offset = match['offset']
-        length = match['length']
-        replacement = match['replacements'][0]['value'] if match['replacements'] else ''
-        corrected_text = corrected_text[:offset] + replacement + corrected_text[offset + length:]
-    return corrected_text
+    url = f"http://abirthetech.serv00.net/gmr.php?prompt={text}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            result = await response.json()
+            return result['response'].strip()
 
 async def grammar_check(client: Client, message: Message):
-    user_input = message.text.split(maxsplit=1)
-    if len(user_input) < 2:
-        await client.send_message(message.chat.id, "**❌ Provide some text to fix Grammar..**", parse_mode=ParseMode.MARKDOWN)
+    # Check if the message is a reply
+    if message.reply_to_message and message.reply_to_message.text:
+        user_input = message.reply_to_message.text.strip()
     else:
-        checking_message = await client.send_message(message.chat.id, "**Checking Grammar Please Wait...✨**", parse_mode=ParseMode.MARKDOWN)
-        corrected_text = await check_grammar(user_input[1])
-        await checking_message.edit(text=f"`{corrected_text}`", parse_mode=ParseMode.MARKDOWN)
+        # Check if command has text
+        user_input = message.text.split(maxsplit=1)
+        if len(user_input) < 2:
+            await client.send_message(
+                message.chat.id,
+                "**❌ Provide some text or reply to a message to fix grammar.**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        user_input = user_input[1].strip()
+
+    # Proceed with grammar check
+    checking_message = await client.send_message(
+        message.chat.id,
+        "**Checking And Fixing Grammar Please Wait...✨**",
+        parse_mode=ParseMode.MARKDOWN
+    )
+    corrected_text = await check_grammar(user_input)
+    await checking_message.edit(
+        text=f"{corrected_text}",
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 def setup_gmr_handler(app: Client):
     app.add_handler(
