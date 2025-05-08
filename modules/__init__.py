@@ -30,7 +30,6 @@ from .dlxutils.pin import setup_pinterest_handler
 from .dlxutils.spfy import setup_spotify_handler
 from .dlxutils.tik import setup_tt_handler
 from .dlxutils.yt import setup_yt_handler
-from .dlxutils.ig import setup_ig_handler
 from .eduxutils.gmr import setup_gmr_handler
 from .eduxutils.pron import setup_pron_handler
 from .eduxutils.spl import setup_spl_handler
@@ -103,7 +102,6 @@ def setup_modules_handlers(app):
     setup_spotify_handler(app)
     setup_tt_handler(app)
     setup_yt_handler(app)
-    setup_ig_handler(app)
     setup_gmr_handler(app)
     setup_pron_handler(app)
     setup_spl_handler(app)
