@@ -5,6 +5,8 @@ import time
 import re
 import logging
 import aiohttp
+import aiofiles
+import requests
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import Message
@@ -40,35 +42,43 @@ async def progress_bar(current, total, status_message: Message, start_time, last
     except Exception as e:
         logger.error(f"Error updating progress: {e}")
 
-# Function to download video and audio using the provided API
+# Function to download video using the provided API
 async def download_video(url, downloading_message: Message):
-    api_url = f"https://tele-social.vercel.app/down?url={url}"
+    api_url = "https://downloader.bot/api/tiktok/info"
+    payload = {"url": url}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://downloader.bot"
+    }
     
     try:
+        response = requests.post(api_url, json=payload, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get("error"):
+            logger.error(f"API error: {data['error']}")
+            return None
+
+        info = data["data"]
+        video_url = info.get("mp4")
+        if not video_url:
+            logger.error("No video URL found in API response")
+            return None
+
+        await downloading_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
+        
+        video_output = "tiktok_video.mp4"
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if data["status"]:
-                        await downloading_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
-                        video_url = data["data"]["video"]
-                        audio_url = data["data"]["audio"]
-                        
-                        video_output = "tiktok_video.mp4"
-                        async with session.get(video_url) as video_response:
-                            if video_response.status == 200:
-                                with open(video_output, 'wb') as f:
-                                    f.write(await video_response.read())
-                                logger.info(f"Video downloaded successfully to: {video_output}")
-                                return video_output
-                            else:
-                                logger.error("Failed to download video")
-                                return None
-                    else:
-                        logger.error("Failed to get a valid response from the API")
-                        return None
+            async with session.get(video_url, headers=headers) as video_response:
+                if video_response.status == 200:
+                    async with aiofiles.open(video_output, 'wb') as f:
+                        async for chunk in video_response.content.iter_chunked(8192):
+                            await f.write(chunk)
+                    logger.info(f"Video downloaded successfully to: {video_output}")
+                    return video_output
                 else:
-                    logger.error("Failed to reach the download API")
+                    logger.error(f"Failed to download video: HTTP {video_response.status}")
                     return None
     except Exception as e:
         logger.error(f"Error downloading video: {e}")
@@ -76,18 +86,30 @@ async def download_video(url, downloading_message: Message):
 
 # Function to set up TikTok handler
 def setup_tt_handler(app: Client):
-    @app.on_message(filters.command(["tt"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
-    async def tiktok_handler(client, message):
-        match = re.findall(r"^[/.]tt(\s+https?://\S+)?$", message.text)
-        if not match or len(match[0].strip()) == 0:
-            await client.send_message(
-                chat_id=message.chat.id,
-                text="**❌ Please provide a TikTok video link.**",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
+    # Create a regex pattern from the COMMAND_PREFIX list
+    command_prefix_regex = f"[{''.join(map(re.escape, COMMAND_PREFIX))}]"
 
-        url = match[0].strip()
+    @app.on_message(filters.regex(rf"^{command_prefix_regex}tt(\s+https?://\S+)?$") & (filters.private | filters.group))
+    async def tiktok_handler(client, message):
+        url = None
+        # Check if the message is a reply to another message containing a URL
+        if message.reply_to_message and message.reply_to_message.text:
+            replied_text = message.reply_to_message.text
+            # Assume any text in the replied message is a potential URL
+            if re.match(r'https?://\S+', replied_text):
+                url = replied_text
+
+        # If no URL from reply, check the command arguments
+        if not url:
+            command_parts = message.text.split(maxsplit=1)
+            if len(command_parts) < 2:
+                await client.send_message(
+                    chat_id=message.chat.id,
+                    text="**Please provide a TikTok link ❌**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            url = command_parts[1]
 
         # Step 1: Send the initial "Searching Video" message
         status_message = await client.send_message(
@@ -101,7 +123,7 @@ def setup_tt_handler(app: Client):
             video_path = await download_video(url, status_message)
 
             if not video_path:
-                await status_message.edit("**❌Invalid Video URL Inputed**")
+                await status_message.edit("**❌ Invalid Video URL Inputted**")
                 return
 
             # Step 3: Get user information
@@ -152,9 +174,4 @@ def setup_tt_handler(app: Client):
 
         except Exception as e:
             logger.error(f"An error occurred: {e}")
-            # If something goes wrong during the download, show error message
-            await client.send_message(
-                chat_id=message.chat.id,
-                text="**TikTok Downloader API Dead**",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            await status_message.edit("**TikTok Downloader API Dead**")
