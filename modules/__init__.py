@@ -53,7 +53,6 @@ from .netxutils.sk import setup_sk_handlers
 from .payxutils.pay import setup_donate_handler
 from .privxutils.privacy import setup_privacy_handler
 from .remxutils.remini import setup_remini_handler
-from .remxutils.removebg import setup_bg_handler
 from .scrapxutils.ccscr import setup_scr_handler
 from .scrapxutils.mailscr import setup_mailscr_handler
 from .sessxutils.string import setup_string_handler
@@ -125,7 +124,6 @@ def setup_modules_handlers(app):
     setup_donate_handler(app)
     setup_privacy_handler(app)
     setup_remini_handler(app)
-    setup_bg_handler(app)
     setup_scr_handler(app)
     setup_mailscr_handler(app)
     setup_string_handler(app)
