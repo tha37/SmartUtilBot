@@ -1,5 +1,6 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
+
 import os
 import logging
 import re
@@ -20,8 +21,11 @@ from moviepy import VideoFileClip
 import yt_dlp
 from config import COMMAND_PREFIX, YT_COOKIES_PATH, VIDEO_RESOLUTION, MAX_VIDEO_SIZE
 
-# Logging Setup Basic Info
-logging.basicConfig(level=logging.INFO)
+# Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Headers Configuration
@@ -56,9 +60,10 @@ async def get_video_duration(video_path: str) -> float:
         clip = VideoFileClip(video_path)
         duration = clip.duration
         clip.close()
+        logger.info(f"Video duration retrieved: {duration} seconds for {video_path}")
         return duration
     except Exception as e:
-        logger.error(f"Duration error: {e}")
+        logger.error(f"Failed to get duration for {video_path}: {e}")
         return 0.0
 
 async def progress_bar(current, total, status_message, start_time, last_update_time):
@@ -86,6 +91,7 @@ async def progress_bar(current, total, status_message, start_time, last_update_t
     )
     try:
         await status_message.edit(text)
+        logger.info(f"Progress updated: {percentage:.2f}% for upload")
     except Exception as e:
         logger.error(f"Error updating progress: {e}")
 
@@ -97,7 +103,10 @@ def youtube_parser(url: str) -> Optional[str]:
     match = re.search(reg_exp, url)
     if match:
         video_id = match.group(1)
-        return f"https://www.youtube.com/watch?v={video_id}"
+        standardized_url = f"https://www.youtube.com/watch?v={video_id}"
+        logger.info(f"Parsed YouTube URL: {standardized_url}")
+        return standardized_url
+    logger.warning(f"Invalid YouTube URL: {url}")
     return None
 
 def get_ydl_opts(output_path: str, is_audio: bool = False) -> dict:
@@ -119,6 +128,7 @@ def get_ydl_opts(output_path: str, is_audio: bool = False) -> dict:
             'format': f'bestvideo[height<={height}][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
             'postprocessors': [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]
         })
+    logger.info(f"YDL options configured for {'audio' if is_audio else 'video'} download")
     return base
 
 async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Optional[dict], Optional[str]]:
@@ -126,6 +136,7 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
     parsed_url = youtube_parser(url)
     if not parsed_url:
         await status.edit_text("**Invalid YouTube ID Or URL**")
+        logger.error(f"Invalid YouTube URL provided: {url}")
         return None, "Invalid YouTube URL"
     
     try:
@@ -138,16 +149,19 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
         
         if not info:
             await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**")
+            logger.error(f"No media info found for URL: {parsed_url}")
             return None, "No media info found"
         
         # Check duration (2 hours = 7200 seconds)
         duration = info.get('duration', 0)
         if duration > 7200:
             await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Is Over 2hrs**")
+            logger.error(f"Media duration exceeds modifies 2 hours: {duration} seconds")
             return None, "Media duration exceeds 2 hours"
         
         # Instantly edit status to "Found" after metadata is fetched
         await status.edit_text("**Found ☑️ Downloading...**")
+        logger.info(f"Media found: {info.get('title', 'Unknown')} ({'audio' if is_audio else 'video'})")
         
         title = info.get('title', 'Unknown')
         safe_title = sanitize_filename(title)
@@ -160,6 +174,7 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
         file_path = f"{output_path}.mp3" if is_audio else f"{output_path}.mp4"
         if not os.path.exists(file_path):
             await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**")
+            logger.error(f"Download failed, file not found: {file_path}")
             return None, "Download failed"
         
         # Check file size
@@ -167,6 +182,7 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
         if file_size > MAX_VIDEO_SIZE:
             os.remove(file_path)
             await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Is Over 2GB**")
+            logger.error(f"File size exceeds 2GB: {file_size} bytes")
             return None, "File exceeds 2GB"
         
         thumbnail_path = await prepare_thumbnail(info.get('thumbnail'), output_path)
@@ -180,7 +196,7 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
             'file_size': format_size(file_size),
             'thumbnail_path': thumbnail_path
         }
-        print(f"{'Audio' if is_audio else 'Video'} Metadata: {metadata}")
+        logger.info(f"{'Audio' if is_audio else 'Video'} metadata prepared: {metadata}")
         
         return metadata, None
     except asyncio.TimeoutError:
@@ -194,17 +210,20 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
 
 async def prepare_thumbnail(thumbnail_url: str, output_path: str) -> Optional[str]:
     if not thumbnail_url:
+        logger.warning("No thumbnail URL provided")
         return None
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(thumbnail_url) as resp:
                 if resp.status != 200:
+                    logger.error(f"Failed to fetch thumbnail, status: {resp.status}")
                     return None
                 data = await resp.read()
         
         thumbnail_path = f"{output_path}_thumb.jpg"
         with Image.open(io.BytesIO(data)) as img:
             img.convert('RGB').save(thumbnail_path, "JPEG", quality=85)
+        logger.info(f"Thumbnail saved: {thumbnail_path}")
         return thumbnail_path
     except Exception as e:
         logger.error(f"Thumbnail error: {e}")
@@ -223,21 +242,27 @@ async def search_youtube(query: str, retries: int = 2) -> Optional[str]:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = await asyncio.get_event_loop().run_in_executor(executor, ydl.extract_info, query, False)
                 if info.get('entries'):
-                    return info['entries'][0]['webpage_url']
+                    url = info['entries'][0]['webpage_url']
+                    logger.info(f"YouTube search successful, found URL: {url} for query: {query}")
+                    return url
                 
                 # Fallback: Simplify query
                 simplified_query = re.sub(r'[^\w\s]', '', query).strip()
                 if simplified_query != query:
                     info = await asyncio.get_event_loop().run_in_executor(executor, ydl.extract_info, simplified_query, False)
                     if info.get('entries'):
-                        return info['entries'][0]['webpage_url']
+                        url = info['entries'][0]['webpage_url']
+                        logger.info(f"YouTube search successful with simplified query, found URL: {url} for query: {simplified_query}")
+                        return url
         except Exception as e:
             logger.error(f"Search error (attempt {attempt + 1}) for query {query}: {e}")
             if attempt < retries - 1:
                 await asyncio.sleep(1)
+    logger.error(f"YouTube search failed after {retries} attempts for query: {query}")
     return None
 
 async def handle_media_request(client: Client, message: Message, query: str, is_audio: bool = False):
+    logger.info(f"Handling media request: {'audio' if is_audio else 'video'}, query: {query}, user: {message.from_user.id if message.from_user else 'unknown'}, chat: {message.chat.id}")
     status = await client.send_message(
         message.chat.id,
         f"**Searching The {'Audio' if is_audio else 'Video'}**",
@@ -248,14 +273,16 @@ async def handle_media_request(client: Client, message: Message, query: str, is_
     video_url = youtube_parser(query) if youtube_parser(query) else await search_youtube(query)
     if not video_url:
         await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**")
+        logger.error(f"No video URL found for query: {query}")
         return
     
     result, error = await download_media(video_url, is_audio, status)
     if error:
+        logger.error(f"Media download failed: {error}")
         return  # Error message already handled in download_media
     
     user_info = (
-        f"[{message.from_user.first_name}](tg://user?id={message.from_user.id})" if message.from_user else
+        f"[{message.from_user.first_name}{' ' + message.from_user.last_name if message.from_user.last_name else ''}](tg://user?id={message.from_user.id})" if message.from_user else
         f"[{message.chat.title}](https://t.me/{message.chat.username or 'this group'})"
     )
     caption = (
@@ -280,7 +307,7 @@ async def handle_media_request(client: Client, message: Message, query: str, is_
         'progress_args': (status, start_time, last_update_time)
     }
     if is_audio:
-        kwargs.update({'audio': result['file_path'], 'title': result['title'], 'performer': "Smart Tools ❄️"})
+        kwargs.update({'audio': result['file_path'], 'title': result['title']})
     else:
         kwargs.update({
             'video': result['file_path'],
@@ -292,6 +319,7 @@ async def handle_media_request(client: Client, message: Message, query: str, is_
     
     try:
         await send_func(**kwargs)
+        logger.info(f"Media uploaded successfully: {'audio' if is_audio else 'video'}, file: {result['file_path']}")
     except Exception as e:
         logger.error(f"Upload error: {e}")
         await status.edit_text("**Sorry Bro YouTubeDL API Dead**")
@@ -300,23 +328,61 @@ async def handle_media_request(client: Client, message: Message, query: str, is_
     for path in (result['file_path'], result['thumbnail_path']):
         if path and os.path.exists(path):
             os.remove(path)
+            logger.info(f"Cleaned up file: {path}")
     await status.delete()
+    logger.info("Status message deleted")
 
 def setup_yt_handler(app: Client):
     prefix = f"[{''.join(map(re.escape, COMMAND_PREFIX))}]"
     
     @app.on_message(filters.regex(rf"^{prefix}(yt|video)(\s+.+)?$"))
     async def video_command(client, message):
-        query = message.text.split(maxsplit=1)[1] if len(message.text.split(maxsplit=1)) > 1 else None
-        if not query:
-            await client.send_message(message.chat.id, "**Please provide your video name or link ❌**", parse_mode=ParseMode.MARKDOWN)
+        user_id = message.from_user.id if message.from_user else "unknown"
+        chat_id = message.chat.id
+        logger.info(f"Video command received from user: {user_id}, chat: {chat_id}, text: {message.text}")
+        
+        # Check if the message is a reply
+        if message.reply_to_message and message.reply_to_message.text:
+            query = message.reply_to_message.text.strip()
+            logger.info(f"Using replied message as query: {query}")
         else:
-            await handle_media_request(client, message, query)
+            # Check if query is provided directly
+            query = message.text.split(maxsplit=1)[1] if len(message.text.split(maxsplit=1)) > 1 else None
+            logger.info(f"Using direct query: {query if query else 'none'}")
+        
+        if not query:
+            await client.send_message(
+                message.chat.id,
+                "**Please provide a video name or link ❌**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            logger.warning(f"No query provided for video command, user: {user_id}, chat: {chat_id}")
+            return
+        
+        await handle_media_request(client, message, query)
     
     @app.on_message(filters.regex(rf"^{prefix}song(\s+.+)?$"))
     async def song_command(client, message):
-        query = message.text.split(maxsplit=1)[1] if len(message.text.split(maxsplit=1)) > 1 else None
-        if not query:
-            await client.send_message(message.chat.id, "**Please provide a Music Name Or Link ❌**", parse_mode=ParseMode.MARKDOWN)
+        user_id = message.from_user.id if message.from_user else "unknown"
+        chat_id = message.chat.id
+        logger.info(f"Song command received from user: {user_id}, chat: {chat_id}, text: {message.text}")
+        
+        # Check if the message is a reply
+        if message.reply_to_message and message.reply_to_message.text:
+            query = message.reply_to_message.text.strip()
+            logger.info(f"Using replied message as query: {query}")
         else:
-            await handle_media_request(client, message, query, is_audio=True)
+            # Check if query is provided directly
+            query = message.text.split(maxsplit=1)[1] if len(message.text.split(maxsplit=1)) > 1 else None
+            logger.info(f"Using direct query: {query if query else 'none'}")
+        
+        if not query:
+            await client.send_message(
+                message.chat.id,
+                "**Please provide a music name or link ❌**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            logger.warning(f"No query provided for song command, user: {user_id}, chat: {chat_id}")
+            return
+        
+        await handle_media_request(client, message, query, is_audio=True)
