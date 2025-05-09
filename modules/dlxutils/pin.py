@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import logging
 import time
@@ -33,38 +33,47 @@ class PinterestDownloader:
 
     async def download_media(self, url: str, downloading_message: Message) -> Optional[dict]:
         self.temp_dir.mkdir(exist_ok=True)
-        api_url = f"https://tele-social.vercel.app/down?url={url}"
+        api_url = f"https://pin-ten-pi.vercel.app/dl?url={url}"
         
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(limit=100),  # Create connector in async context
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as session:
                 async with session.get(api_url) as response:
                     logger.info(f"API request to {api_url} returned status {response.status}")
                     if response.status == 200:
                         data = await response.json()
                         logger.info(f"API response: {data}")
-                        if data["status"]:
-                            await downloading_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
-                            media_url = data["url"]
-                            title = data.get("filename", "Pinterest Media")
-                            filename = self.temp_dir / title
-                            await self._download_file(session, media_url, filename)
-                            return {
-                                'title': title,
-                                'filename': str(filename),
-                                'webpage_url': url
-                            }
+                        await downloading_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
+                        media_url = data.get("dl_url")
+                        title = data.get("title", "Pinterest Media")
+                        filename = self.temp_dir / f"{title.replace(' ', '_')}.mp4"
+                        await self._download_file(session, media_url, filename)
+                        return {
+                            'title': title,
+                            'filename': str(filename),
+                            'webpage_url': url
+                        }
                     return None
-        except Exception as e:
+        except aiohttp.ClientError as e:
             logger.error(f"Pinterest download error: {e}")
             return None
+        except asyncio.TimeoutError:
+            logger.error("Request to Pinterest API timed out")
+            return None
 
-    async def _download_file(self, session, url, dest):
-        async with session.get(url) as response:
-            if response.status == 200:
-                logger.info(f"Downloading media from {url} to {dest}")
-                f = await aiofiles.open(dest, mode='wb')
-                await f.write(await response.read())
-                await f.close()
+    async def _download_file(self, session: aiohttp.ClientSession, url: str, dest: Path):
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    logger.info(f"Downloading media from {url} to {dest}")
+                    async with aiofiles.open(dest, mode='wb') as f:
+                        async for chunk in response.content.iter_chunked(1024 * 1024):  # 1MB chunks
+                            await f.write(chunk)
+        except aiohttp.ClientError as e:
+            logger.error(f"Error downloading file from {url}: {e}")
+            raise
 
 async def progress_bar(current, total, status_message, start_time, last_update_time):
     """
@@ -77,7 +86,7 @@ async def progress_bar(current, total, status_message, start_time, last_update_t
     uploaded = current / 1024 / 1024  # Uploaded size in MB
     total_size = total / 1024 / 1024  # Total size in MB
 
-    # Throttle updates: Only update if at least  second has passed since the last update
+    # Throttle updates: Only update if at least 1 second has passed since the last update
     if time.time() - last_update_time[0] < 1:
         return
     last_update_time[0] = time.time()  # Update the last update time
@@ -100,18 +109,31 @@ def setup_pinterest_handler(app: Client):
     # Create a regex pattern from the COMMAND_PREFIX list
     command_prefix_regex = f"[{''.join(map(re.escape, COMMAND_PREFIX))}]"
 
-    @app.on_message(filters.regex(rf"^{command_prefix_regex}pin(\s+https?://\S+)?$") & (filters.private | filters.group))
+    @app.on_message(
+        filters.regex(rf"^{command_prefix_regex}(pnt|pint)(\s+https?://\S+)?$") & 
+        (filters.private | filters.group)
+    )
     async def pin_handler(client: Client, message: Message):
-        command_parts = message.text.split(maxsplit=1)
-        if len(command_parts) < 2:
+        url = None
+        # Check if the message is a reply to another message
+        if message.reply_to_message and message.reply_to_message.text:
+            match = re.search(r"https?://pin\.it/\S+", message.reply_to_message.text)
+            if match:
+                url = match.group(0)
+        # Check if the command includes a URL
+        if not url:
+            command_parts = message.text.split(maxsplit=1)
+            if len(command_parts) > 1:
+                url = command_parts[1]
+
+        if not url:
             await client.send_message(
                 chat_id=message.chat.id,
-                text="**Please provide a Pinterest link ❌**",
+                text="**Please provide a Pinterest link or reply to a message with a Pinterest link ❌**",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
         
-        url = command_parts[1]
         downloading_message = await client.send_message(
             chat_id=message.chat.id,
             text="**Searching The Media**",
@@ -141,7 +163,7 @@ def setup_pinterest_handler(app: Client):
                     f"**Downloaded By**: {user_info}"
                 )
                 
-                async with aiofiles.open(filename, 'rb') as media_file:
+                async with aiofiles.open(filename, 'rb'):
                     start_time = time.time()
                     last_update_time = [start_time]
                     await client.send_video(
