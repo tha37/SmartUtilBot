@@ -1,5 +1,3 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
 import os
 import logging
 import time
@@ -14,7 +12,7 @@ from pyrogram.enums import ParseMode
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from typing import Optional
 from config import COMMAND_PREFIX
-import urllib.parse  # Added for URL encoding
+import urllib.parse
 
 # Configure logging
 logging.basicConfig(
@@ -49,17 +47,21 @@ async def download_image(url: str, output_path: str) -> Optional[str]:
         logger.error(f"Failed to download image: {e}")
     return None
 
-async def handle_spotify_request(client, message, input_text):
-    # Check if input_text is a Spotify URL or a search query
-    is_url = input_text and ('open.spotify.com/track/' in input_text or 'spotify.link/' in input_text)
+async def handle_spotify_request(client: Client, message: Message, input_text: Optional[str]):
+    # Check if the message is a reply to another message
+    if not input_text and message.reply_to_message and message.reply_to_message.text:
+        input_text = message.reply_to_message.text
 
     if not input_text:
         await client.send_message(
             chat_id=message.chat.id,
-            text="**Please provide a track Spotify URL or a search query ❌**",
+            text="**Please provide a track Spotify URL ❌**",
             parse_mode=ParseMode.MARKDOWN
         )
         return
+
+    # Check if input_text is a URL (starts with http)
+    is_url = input_text.lower().startswith('http')
 
     status_message = await client.send_message(
         chat_id=message.chat.id,
@@ -78,12 +80,12 @@ async def handle_spotify_request(client, message, input_text):
                         data = await response.json()
                         logger.info(f"Track API response: {data}")
                         if data["status"]:
-                            await status_message.edit("**Found ☑️ Downloading...**")
+                            await status_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
                         else:
-                            await status_message.edit("**Please Provide A Valid Spotify URL ❌**")
+                            await status_message.edit_text("**Please Provide A Valid Spotify URL ❌**", parse_mode=ParseMode.MARKDOWN)
                             return
                     else:
-                        await status_message.edit("**❌ Song Not Available On Spotify**")
+                        await status_message.edit_text("**❌ Song Not Available On Spotify**", parse_mode=ParseMode.MARKDOWN)
                         return
             else:
                 # Handle search query
@@ -95,28 +97,28 @@ async def handle_spotify_request(client, message, input_text):
                         data = await response.json()
                         logger.info(f"Search API response: {data}")
                         if data["type"] == "search" and data["data"]:
-                            await status_message.edit("**Found ☑️ Downloading...**")
+                            await status_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
                             # Use the first result
                             track = data["data"][0]
                             # Fetch track details using the Spotify URL
                             track_url = track["external_urls"]["spotify"]
                             logger.info(f"Selected track: {track['name']} (URL: {track_url})")
-                            track_api_url = f"https://abirthetech.serv00.net/sp.php?url={track_url}"  # Fixed API endpoint
+                            track_api_url = f"https://abirthetech.serv00.net/sp.php?url={track_url}"
                             async with session.get(track_api_url) as track_response:
                                 if track_response.status == 200:
                                     data = await track_response.json()
                                     logger.info(f"Track API response: {data}")
                                     if not data["status"]:
-                                        await status_message.edit("**Song Metadata Unavailable**")
+                                        await status_message.edit_text("**Song Metadata Unavailable**", parse_mode=ParseMode.MARKDOWN)
                                         return
                                 else:
-                                    await status_message.edit("**❌Song Unavailable Bro Try Later**")
+                                    await status_message.edit_text("**❌ Song Unavailable Bro Try Later**", parse_mode=ParseMode.MARKDOWN)
                                     return
                         else:
-                            await status_message.edit("**Sorry No Songs Matched To Your Search!**")
+                            await status_message.edit_text("**Sorry No Songs Matched To Your Search!**", parse_mode=ParseMode.MARKDOWN)
                             return
                     else:
-                        await status_message.edit("**❌ Sorry Bro Spotify Search API Dead**")
+                        await status_message.edit_text("**❌ Sorry Bro Spotify Search API Dead**", parse_mode=ParseMode.MARKDOWN)
                         return
 
             # Extract track details from API response
@@ -151,7 +153,7 @@ async def handle_spotify_request(client, message, input_text):
                         await file.write(await response.read())
                     logger.info(f"Audio file downloaded successfully to {output_filename}")
                 else:
-                    await status_message.edit("**❌ Sorry Bro Spotify DL API Dead**")
+                    await status_message.edit_text("**❌ Sorry Bro Spotify DL API Dead**", parse_mode=ParseMode.MARKDOWN)
                     return
 
             # Prepare user info for caption
@@ -160,7 +162,7 @@ async def handle_spotify_request(client, message, input_text):
                 user_info = f"[{user_full_name}](tg://user?id={message.from_user.id})"
             else:
                 group_name = message.chat.title or "this group"
-                group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
+                group_url = f"https://t.me/{message.chat.username}" if message.chat.username else group_name
                 user_info = f"[{group_name}]({group_url})"
 
             # Format caption without the Spotify URL text link
@@ -191,7 +193,7 @@ async def handle_spotify_request(client, message, input_text):
                 performer=artists,
                 parse_mode=ParseMode.MARKDOWN,
                 thumb=cover_path if cover_path else None,
-                reply_markup=reply_markup,  # Add the inline button
+                reply_markup=reply_markup,
                 progress=progress_bar,
                 progress_args=(status_message, start_time, last_update_time)
             )
@@ -201,9 +203,9 @@ async def handle_spotify_request(client, message, input_text):
             if cover_path:
                 os.remove(cover_path)
 
-            await status_message.delete()  # Delete the progress message after completion
+            await status_message.delete()
     except Exception as e:
-        await status_message.edit("**❌ Sorry Bro Spotify DL API Dead**")
+        await status_message.edit_text("**❌ Sorry Bro Spotify DL API Dead**", parse_mode=ParseMode.MARKDOWN)
         logger.error(f"Error processing Spotify request: {e}")
 
 async def progress_bar(current, total, status_message, start_time, last_update_time):
@@ -228,7 +230,7 @@ async def progress_bar(current, total, status_message, start_time, last_update_t
         f"📶 Uploaded: {uploaded:.2f} MB of {total_size:.2f} MB"
     )
     try:
-        await status_message.edit(text)
+        await status_message.edit_text(text)
     except Exception as e:
         logger.error(f"Error updating progress: {e}")
 
@@ -237,7 +239,7 @@ def setup_spotify_handler(app: Client):
     command_prefix_regex = f"[{''.join(map(re.escape, COMMAND_PREFIX))}]"
 
     @app.on_message(filters.regex(rf"^{command_prefix_regex}sp(\s+.*)?$") & (filters.private | filters.group))
-    async def spotify_command(client, message):
+    async def spotify_command(client: Client, message: Message):
         # Check if the message contains a Spotify URL or query
         command_parts = message.text.split(maxsplit=1)
         input_text = command_parts[1].strip() if len(command_parts) > 1 else None
