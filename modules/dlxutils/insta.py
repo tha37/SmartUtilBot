@@ -77,7 +77,7 @@ async def progress_bar(current, total, status_message, start_time, last_update_t
     uploaded = current / 1024 / 1024  # Uploaded size in MB
     total_size = total / 1024 / 1024  # Total size in MB
 
-    # Throttle updates: Only update if at least  second has passed since the last update
+    # Throttle updates: Only update if at least 1 second has passed since the last update
     if time.time() - last_update_time[0] < 1:
         return
     last_update_time[0] = time.time()  # Update the last update time
@@ -102,16 +102,20 @@ def setup_insta_handlers(app: Client):
 
     @app.on_message(filters.regex(rf"^{command_prefix_regex}in(\s+https?://\S+)?$") & (filters.private | filters.group))
     async def ig_handler(client: Client, message: Message):
-        command_parts = message.text.split(maxsplit=1)
-        if len(command_parts) < 2:
-            await client.send_message(
-                chat_id=message.chat.id,
-                text="**Please provide an Instagram Reels link ❌**",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-        
-        url = command_parts[1]
+        # Check if message is a reply to another message
+        if message.reply_to_message and message.reply_to_message.text:
+            url = message.reply_to_message.text
+        else:
+            command_parts = message.text.split(maxsplit=1)
+            if len(command_parts) < 2:
+                await client.send_message(
+                    chat_id=message.chat.id,
+                    text="**Please provide an Instagram Reels link ❌**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            url = command_parts[1]
+
         downloading_message = await client.send_message(
             chat_id=message.chat.id,
             text="**Searching The Reel**",
