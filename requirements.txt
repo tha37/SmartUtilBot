@@ -1,6 +1,5 @@
 pyrogram
 requests
-instaloader
 aiohttp
 telethon
 asyncio
@@ -8,12 +7,10 @@ pytz
 pycountry
 beautifulsoup4
 tgcrypto
-flask
 pillow
 yt-dlp
 ffmpeg
 spotipy
-pyspellchecker
 pillow
 python-dateutil
 pymongo
@@ -24,6 +21,4 @@ googletrans==4.0.0-rc1
 psutil
 pydub
 moviepy
-rembg
-onnxruntime-gpu
 speedtest-cli
