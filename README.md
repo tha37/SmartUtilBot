@@ -1,6 +1,6 @@
-## SmartUtilBot 💥🌟
+# SmartUtilBot 💥🌟
 
-**SmartUtilBot is a powerful Telegram bot built with Python and Pyrogram, designed to provide a wide range of utilities including cre!!dit card scr!!aping, media downloading, AI-powered tools, and more. This bot leverages multiple APIs and services to deliver robust functionality for both casual and advanced users. ✨**
+**SmartUtilBot is a powerful Telegram bot built with Python and Pyrogram, designed to provide a wide range of utilities including credit card scraping, media downloading, AI-powered tools, and more. This bot leverages multiple APIs and services to deliver robust functionality for both casual and advanced users. ✨**
 
 ## Features 🌟
 
@@ -79,10 +79,10 @@
 ## Requirements 💥🌟
 
 - **Python 3.9 Or Above** 🐍  
-- **Note:** `Python Version 3.9-3.12 Full Supported 3.13 Maybe But Not Tested`
+  **Note:** `Python Version 3.9-3.12 Full Supported 3.13 Maybe But Not Tested`
 
 - **3 MongoDB URLs** 🌐  
-  Need 3 MONGO_URL Must For 3 DB Client So Thats A Mandatory VARS
+  Need 3 MONGO_URL Must For 3 DB Client So That's A Mandatory VARS
 
 - **Supported OS** ❄️  
   - Ubuntu 22.04+ 💫  
@@ -152,6 +152,95 @@ Follow these steps to set up and deploy **SmartUtilBot**:
 
 > **Special Note:** 💫: Configure the bot by setting values in either the `.env` file or directly in `config.py`—your choice! The default YouTube cookies path is `SmartUtilBot/cookies.txt`. Admins can dynamically adjust variables using the `/settings` command within the bot for quick and easy management. 👨‍💻
 
+## Deploy to Heroku
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://www.heroku.com/deploy/?template=https://github.com/TheSmartDevs/SmartUtilBot)
+
+### Heroku Deployment Tutorial
+
+Deploying **SmartUtilBot** to Heroku is a straightforward process. Follow these steps to get your bot running on Heroku:
+
+1. **Create a Heroku Account**:
+   - Sign up for a free account at [Heroku](https://www.heroku.com/) if you don’t already have one.
+
+2. **Install Heroku CLI**:
+   - Download and install the Heroku Command Line Interface (CLI) from [Heroku Dev Center](https://devcenter.heroku.com/articles/heroku-cli).
+   - Verify installation by running:
+     ```bash
+     heroku --version
+     ```
+
+3. **Log in to Heroku**:
+   - Run the following command and follow the prompts to log in:
+     ```bash
+     heroku login
+     ```
+
+4. **Clone the Repository**:
+   - If you haven’t already, clone the SmartUtilBot repository:
+     ```bash
+     git clone https://github.com/TheSmartDevs/SmartUtilBot.git
+     cd SmartUtilBot
+     ```
+
+5. **Create a Heroku App**:
+   - Create a new Heroku app by running:
+     ```bash
+     heroku create your-app-name
+     ```
+     Replace `your-app-name` with a unique name for your app.
+
+6. **Install FFmpeg Buildpack**:
+   - Heroku requires a buildpack to install FFmpeg. Add the FFmpeg buildpack to your app:
+     ```bash
+     heroku buildpacks:add https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git -a your-app-name
+     ```
+   - Add the Python buildpack as well:
+     ```bash
+     heroku buildpacks:add heroku/python -a your-app-name
+     ```
+
+7. **Set Environment Variables**:
+   - Configure the mandatory and optional environment variables (see [Environment Variables](#environment-variables)) in Heroku:
+     ```bash
+     heroku config:set API_ID=your_api_id -a your-app-name
+     heroku config:set API_HASH=your_api_hash -a your-app-name
+     heroku config:set BOT_TOKEN=your_bot_token -a your-app-name
+     heroku config:set SESSION_STRING=your_session_string -a your-app-name
+     heroku config:set OPENAI_API_KEY=your_openai_key -a your-app-name
+     heroku config:set MONGO_URL=your_mongo_url -a your-app-name
+     heroku config:set DATABASE_URL=your_database_url -a your-app-name
+     heroku config:set DB_URL=your_db_url -a your-app-name
+     ```
+   - Add optional variables as needed, such as `GOOGLE_API_KEY`, `GROQ_API_KEY`, etc.
+
+8. **Deploy the Bot**:
+   - Push the code to Heroku:
+     ```bash
+     git push heroku main
+     ```
+   - Scale the dyno to run the bot:
+     ```bash
+     heroku ps:scale worker=1 -a your-app-name
+     ```
+
+9. **Verify Deployment**:
+   - Check the logs to ensure the bot is running:
+     ```bash
+     heroku logs --tail -a your-app-name
+     ```
+   - Interact with your bot on Telegram to confirm it’s operational.
+
+10. **Managing FFmpeg on Heroku**:
+    - The FFmpeg buildpack automatically installs FFmpeg during deployment. No manual installation is required, unlike local setups.
+    - If you encounter issues with FFmpeg, ensure the buildpack was added correctly and redeploy:
+      ```bash
+      git commit --allow-empty -m "Redeploy for FFmpeg"
+      git push heroku main
+      ```
+
+> **Note**: Heroku’s free tier has limitations, such as dyno hours and sleep periods. Consider upgrading to a paid plan for persistent bot availability. Ensure your `.env` or `config.py` settings are correctly mirrored in Heroku’s config vars.
+
 ## Environment Variables ⚙️
 
 ### Mandatory Vars To Connect The Bot To Telegram Server ⁉️
@@ -163,7 +252,7 @@ Follow these steps to set up and deploy **SmartUtilBot**:
 5. `OPENAI_API_KEY` - Obtain from [OpenAI API Console](https://platform.openai.com/account/api-keys). 🧠
 6. `MONGO_URL` - MongoDB database URL for storing user and group Database, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
 7. `DATABASE_URL` - Alternative MongoDB database URL For ChannelHelp, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
-8. `DB_URL` - Additional MongoDB database URL FOr GroupHelp, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
+8. `DB_URL` - Additional MongoDB database URL For GroupHelp, obtain from [MongoDB](https://cloud.mongodb.com). 🗄️
 
 ### Recommended Optional Vars For The Core Utils🌟
 
@@ -199,8 +288,8 @@ Follow these steps to set up and deploy **SmartUtilBot**:
 23. `IMGAI_SIZE_LIMIT` - Max image size for AI processing (default: 5MB). 🖼️
 24. `MAX_TXT_SIZE` - Max text file size (default: 15MB). 📝
 25. `MAX_VIDEO_SIZE` - YouTube Downloader Max video file size (default: 2GB). 📹
-26. `VIDEO_RESOLUTION` - YouTube Downloader video resolution (default: 1280x720). 📺
-27. `COMMAND_PREFIX` - Command prefixes (default: `!|.|#|,|/`). ⚙️
+26. `VIDEO_RESOLUTION`' - YouTube Downloader video resolution (default: 1280x720). 📺
+27. `COMMAND_PREFIX` - Command prefixes (default: `!|.|#|,|/`).
 
 ## Handling YouTube Download Errors with Cookies 🍪
 
