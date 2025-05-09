@@ -83,7 +83,7 @@ def setup_fb_handlers(app: Client):
             if len(command_parts) < 2:
                 await client.send_message(
                     chat_id=message.chat.id,
-                    text="**Please provide a Facebook link or reply to a message containing a Facebook link ❌**",
+                    text="**Please provide a Facebook link ❌**",
                     parse_mode=ParseMode.MARKDOWN
                 )
                 return
