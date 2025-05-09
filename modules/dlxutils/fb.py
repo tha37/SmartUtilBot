@@ -75,16 +75,20 @@ def setup_fb_handlers(app: Client):
 
     @app.on_message(filters.regex(rf"^{command_prefix_regex}fb(\s+https?://\S+)?$") & (filters.private | filters.group))
     async def fb_handler(client: Client, message: Message):
-        command_parts = message.text.split(maxsplit=1)
-        if len(command_parts) < 2:
-            await client.send_message(
-                chat_id=message.chat.id,
-                text="**Please provide a Facebook link ❌**",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-        
-        url = command_parts[1]
+        # Check if message is a reply to another message
+        if message.reply_to_message and message.reply_to_message.text:
+            url = message.reply_to_message.text
+        else:
+            command_parts = message.text.split(maxsplit=1)
+            if len(command_parts) < 2:
+                await client.send_message(
+                    chat_id=message.chat.id,
+                    text="**Please provide a Facebook link or reply to a message containing a Facebook link ❌**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            url = command_parts[1]
+
         downloading_message = await client.send_message(
             chat_id=message.chat.id,
             text="**Searching The Video**",
