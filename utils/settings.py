@@ -2,19 +2,24 @@
 #Channel t.me/TheSmartDev
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
-from pyrogram.enums import ParseMode
+from pyrogram.enums import ParseMode, ChatType
+from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 import os
-import re
+import logging
 from dotenv import load_dotenv
 from config import COMMAND_PREFIX, ADMIN_IDS
 
-# Load environment variables
+# Logging Setup
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+# Load The Environment Variables
 load_dotenv()
 
-# Temporary storage for tracking user actions
+# Temp Session For Fix The Bug 🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️
 user_session = {}
 
-# Helper function to detect duplicate keys in the `.env` file
+# Helper Function To Remove Duplicate VARS
 def detect_duplicate_keys():
     """Log a warning for duplicate keys in the .env file."""
     with open(".env") as f:
@@ -28,7 +33,7 @@ def detect_duplicate_keys():
                     duplicates.add(key)
                 seen_keys.add(key)
         if duplicates:
-            print(f"Warning: Duplicate keys found in .env: {', '.join(duplicates)}")
+            logger.warning(f"Duplicate keys found in .env: {', '.join(duplicates)}")
 
 detect_duplicate_keys()
 
@@ -58,25 +63,7 @@ def update_env_var(key, value):
             f.write(f"{k}={v}\n")
 
 config_keys = load_env_vars()
-ITEMS_PER_PAGE = 10  # Show 10 variables per page (5 rows)
-
-# Regex patterns for validation
-VALIDATION_PATTERNS = {
-    "API_ID": r"^\d+$",  # API_ID must be numeric
-    "API_HASH": r"^[a-f0-9]{32}$",  # API_HASH must be a valid 32-character hexadecimal string
-    "BOT_TOKEN": r"^\d+:[a-zA-Z0-9_-]+$",  # BOT_TOKEN must follow Telegram's bot token format
-    "DEFAULT_LIMIT": r"^\d+$",  # DEFAULT_LIMIT must be numeric
-    "ADMIN_LIMIT": r"^\d+$",  # ADMIN_LIMIT must be numeric
-    "COMMAND_PREFIX": r"^[!#.,|]+$",  # COMMAND_PREFIX must be a combination of specific characters
-    "DEVELOPER_USER_ID": r"^\d+$",  # DEVELOPER_USER_ID must be numeric
-}
-
-def is_valid_value(key, value):
-    """Validate the value for a given key using predefined regex patterns."""
-    pattern = VALIDATION_PATTERNS.get(key)
-    if pattern:
-        return bool(re.match(pattern, value))
-    return True  # If no pattern is defined, assume the value is valid.
+ITEMS_PER_PAGE = 10  
 
 def build_menu(page=0):
     """Build the inline keyboard menu for settings."""
@@ -89,7 +76,7 @@ def build_menu(page=0):
         buttons = [
             InlineKeyboardButton(current_keys[i], callback_data=f"settings_edit_{current_keys[i]}")
         ]
-        if i + 1 < len(current_keys):  # Add a second button if available
+        if i + 1 < len(current_keys):  
             buttons.append(InlineKeyboardButton(current_keys[i + 1], callback_data=f"settings_edit_{current_keys[i + 1]}"))
         rows.append(buttons)
 
@@ -114,11 +101,32 @@ def build_menu(page=0):
 
 def setup_settings_handler(app: Client):
     """Setup the settings handler for the Pyrogram app."""
+    async def debug_all(client: Client, message: Message):
+        """Catch-all handler to debug all group chat messages."""
+        thread_id = getattr(message, "message_thread_id", None)
+        is_reply = message.reply_to_message_id is not None
+        logger.debug(f"Catch-all: user {message.from_user.id}, chat {message.chat.id}, text='{message.text}', "
+                    f"chat_type={message.chat.type}, is_reply={is_reply}, reply_to={message.reply_to_message_id}, thread={thread_id}")
 
-    @app.on_message(filters.command(["settings"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
-    async def show_settings(client, message: Message):
+    async def show_settings(client: Client, message: Message):
         """Show the settings menu."""
-        # Restrict to admins only
+        if message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
+            try:
+                chat = await client.get_chat(message.chat.id)
+                permissions = chat.permissions
+                if not permissions.can_send_messages:
+                    logger.error(f"Bot lacks permission to send messages in chat {message.chat.id}")
+                    await client.send_message(
+                        chat_id=message.chat.id,
+                        text="**Sorry Bro This Group Is Restricted**"
+                    )
+                    return
+                logger.debug(f"Chat {message.chat.id} permissions: can_send_messages={permissions.can_send_messages}, "
+                            f"can_read_messages={getattr(permissions, 'can_read_messages', 'Unknown')}")
+            except Exception as e:
+                logger.error(f"Failed to check permissions in chat {message.chat.id}: {str(e)}")
+                return
+
         if message.from_user.id not in ADMIN_IDS:
             await client.send_message(
                 chat_id=message.chat.id,
@@ -126,28 +134,26 @@ def setup_settings_handler(app: Client):
             )
             return
 
+        logger.info(f"Showing settings menu for user {message.from_user.id} in chat {message.chat.id}")
         await client.send_message(
             chat_id=message.chat.id,
-            text="**Select a variable to edit 👇**",
+            text="**Select a change or edit 👇**",
             reply_markup=build_menu()
         )
 
-    @app.on_callback_query(filters.regex(r"^settings_page_(\d+)$"))
-    async def paginate_menu(client, callback_query: CallbackQuery):
+    async def paginate_menu(client: Client, callback_query: CallbackQuery):
         """Handle pagination in the settings menu."""
-        # Restrict to admins
         if callback_query.from_user.id not in ADMIN_IDS:
             await callback_query.answer("🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️", show_alert=True)
             return
 
         page = int(callback_query.data.split("_")[2])
+        logger.info(f"Paginating to page {page} for user {callback_query.from_user.id}")
         await callback_query.edit_message_reply_markup(reply_markup=build_menu(page))
         await callback_query.answer()
 
-    @app.on_callback_query(filters.regex(r"^settings_edit_(.+)"))
-    async def edit_var(client, callback_query: CallbackQuery):
+    async def edit_var(client: Client, callback_query: CallbackQuery):
         """Handle the selection of a variable to edit."""
-        # Restrict to admins
         if callback_query.from_user.id not in ADMIN_IDS:
             await callback_query.answer("🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️", show_alert=True)
             return
@@ -157,70 +163,94 @@ def setup_settings_handler(app: Client):
             await callback_query.answer("Invalid variable selected.", show_alert=True)
             return
 
-        # Store user action in user_session
-        user_session[callback_query.from_user.id] = {"var": var_name}
+        user_session[callback_query.from_user.id] = {
+            "var": var_name,
+            "chat_id": callback_query.message.chat.id
+        }
+        logger.info(f"User {callback_query.from_user.id} started editing {var_name} in chat {callback_query.message.chat.id}")
         await callback_query.edit_message_text(
             text=f"**Editing `{var_name}`. Please send the new value below.**",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel ❌", callback_data="settings_cancel_edit")]])
         )
 
-    @app.on_callback_query(filters.regex(r"^settings_cancel_edit$"))
-    async def cancel_edit(client, callback_query: CallbackQuery):
+    async def cancel_edit(client: Client, callback_query: CallbackQuery):
         """Cancel the editing process."""
-        # Restrict to admins
         if callback_query.from_user.id not in ADMIN_IDS:
             await callback_query.answer("🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️", show_alert=True)
             return
 
-        # Remove user from session
         user_session.pop(callback_query.from_user.id, None)
+        logger.info(f"User {callback_query.from_user.id} cancelled editing")
         await callback_query.edit_message_text("**Variable Editing Cancelled**")
         await callback_query.answer()
 
-    @app.on_message(filters.text & ~filters.command("settings"))
-    async def update_value(client, message: Message):
+    async def update_value(client: Client, message: Message):
         """Update the value of a selected variable."""
-        # Restrict to admins
+        thread_id = getattr(message, "message_thread_id", None)
+        is_reply = message.reply_to_message_id is not None
+        logger.debug(f"Received text message from user {message.from_user.id} in chat {message.chat.id}: '{message.text}', "
+                    f"chat_type={message.chat.type}, is_reply={is_reply}, reply_to_message_id={message.reply_to_message_id}, thread={thread_id}")
+
+        if message.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
+            try:
+                chat = await client.get_chat(message.chat.id)
+                permissions = chat.permissions
+                if not permissions.can_send_messages:
+                    logger.error(f"Bot lacks permission to send messages in chat {message.chat.id}")
+                    await client.send_message(
+                        chat_id=message.chat.id,
+                        text="**Sorry Bro This Group Is Restricted!**"
+                    )
+                    return
+                logger.debug(f"Chat {message.chat.id} permissions: can_send_messages={permissions.can_send_messages}, "
+                            f"can_read_messages={getattr(permissions, 'can_read_messages', 'Unknown')}")
+            except Exception as e:
+                logger.error(f"Failed to check permissions in chat {message.chat.id}: {str(e)}")
+                return
+
+        session = user_session.get(message.from_user.id)
+        if not session:
+            logger.debug(f"No session found for user {message.from_user.id} in chat {message.chat.id}")
+            return
+
+        logger.info(f"Processing value update for user {message.from_user.id} in chat {message.chat.id}, session: {session}")
+
         if message.from_user.id not in ADMIN_IDS:
             await client.send_message(
                 chat_id=message.chat.id,
                 text="**🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️**"
             )
+            user_session.pop(message.from_user.id, None)
+            logger.info(f"Non-admin {message.from_user.id} attempted to update value")
             return
 
-        session = user_session.get(message.from_user.id)
-        if session:
-            var, val = session["var"], message.text
+        var, val = session["var"], message.text.strip()
+        update_env_var(var, val)
+        config_keys[var] = val
+        logger.info(f"Sending success message for {var} update in chat {message.chat.id}")
+        await client.send_message(
+            chat_id=message.chat.id,
+            text=f"**`{var}` Has Been Successfully Updated To `{val}`. ✅**"
+        )
+        user_session.pop(message.from_user.id, None)
+        load_dotenv(override=True)
+        logger.info(f"Successfully updated {var} to '{val}' for user {message.from_user.id} in chat {message.chat.id}")
 
-            # Validate the value
-            if not is_valid_value(var, val):
-                await client.send_message(
-                    chat_id=message.chat.id,
-                    text=f"**Invalid value provided. Please try again. ❌**"
-                )
-                return
-
-            # Update the .env file
-            update_env_var(var, val)
-            # Update the in-memory config_keys
-            config_keys[var] = val
-            # Notify the user of the successful update
-            await client.send_message(
-                chat_id=message.chat.id,
-                text=f"**`{var}` has been successfully updated to `{val}`. ✅**"
-            )
-            # Cleanup session
-            user_session.pop(message.from_user.id, None)
-            # Reload environment variables
-            load_dotenv(override=True)
-
-    @app.on_callback_query(filters.regex(r"^settings_closesettings$"))
-    async def close_menu(client, callback_query: CallbackQuery):
+    async def close_menu(client: Client, callback_query: CallbackQuery):
         """Close the settings menu."""
-        # Restrict to admins
         if callback_query.from_user.id not in ADMIN_IDS:
             await callback_query.answer("🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️", show_alert=True)
             return
 
+        logger.info(f"Closing settings menu for user {callback_query.from_user.id}")
         await callback_query.edit_message_text("**Settings Menu Closed Successfully ✅**")
         await callback_query.answer()
+
+    # Register handlers with group=1
+    app.add_handler(MessageHandler(debug_all, filters.chat([ChatType.GROUP, ChatType.SUPERGROUP])), group=1)
+    app.add_handler(MessageHandler(show_settings, filters.command(["settings"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group)), group=1)
+    app.add_handler(MessageHandler(update_value, filters.text), group=1)
+    app.add_handler(CallbackQueryHandler(paginate_menu, filters.regex(r"^settings_page_(\d+)$")), group=1)
+    app.add_handler(CallbackQueryHandler(edit_var, filters.regex(r"^settings_edit_(.+)")), group=1)
+    app.add_handler(CallbackQueryHandler(cancel_edit, filters.regex(r"^settings_cancel_edit$")), group=1)
+    app.add_handler(CallbackQueryHandler(close_menu, filters.regex(r"^settings_closesettings$")), group=1)
