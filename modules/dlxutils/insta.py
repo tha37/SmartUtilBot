@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import re
 import logging
@@ -13,7 +13,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX
-from utils import progress_bar  # Import progress_bar from utils
+from utils import progress_bar, notify_admin  # Import progress_bar and notify_admin from utils
 
 # Configure logging
 logging.basicConfig(
@@ -57,6 +57,8 @@ class InstagramDownloader:
                     return None
         except Exception as e:
             logger.error(f"Instagram Reels download error: {e}")
+            # Notify admins
+            await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}in", e, downloading_message)
             return None
 
     async def _download_file(self, session, url, dest):
@@ -108,7 +110,7 @@ def setup_insta_handlers(app: Client):
                 else:
                     group_name = message.chat.title or "this group"
                     group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
-                    user_info = f"[{group_name}]({group_url})"
+                    user_info = f"[{group_name]]({group_url})"
 
                 caption = (
                     f"🎥 **Title**: **{title}**\n"
@@ -137,4 +139,7 @@ def setup_insta_handlers(app: Client):
                 await downloading_message.edit_text("**Unable To Extract Url**")
         except Exception as e:
             logger.error(f"Error downloading Instagram Reel: {e}")
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}in", e, message)
+            # Send user-facing error message
             await downloading_message.edit_text("**Instagram Downloader API Dead**")
