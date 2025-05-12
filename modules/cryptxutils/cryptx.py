@@ -1,11 +1,12 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import aiohttp
 import logging
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode, ChatType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 # Set up logging
 logging.basicConfig(
@@ -100,6 +101,8 @@ def setup_coin_handler(app: Client):
                 parse_mode=ParseMode.MARKDOWN
             )
             logger.error("Exception occurred: %s", e)
+            # Notify admins about the error
+            await notify_admin(client, "/cx", e, message)
 
     @app.on_callback_query(filters.regex(r"refresh\$(\w+)\$(\w+)\$(\d+\.\d+|\d+)\$(\d+\.\d+|\d+)"))
     async def refresh_callback(client: Client, callback_query: CallbackQuery):
@@ -155,3 +158,5 @@ def setup_coin_handler(app: Client):
                 parse_mode=ParseMode.MARKDOWN
             )
             logger.error("Exception occurred during refresh: %s", e)
+            # Notify admins about the error
+            await notify_admin(client, "/cx", e, callback_query.message)
