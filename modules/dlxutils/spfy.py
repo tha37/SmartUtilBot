@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 import os
 import logging
 import time
@@ -6,12 +8,14 @@ import aiohttp
 import re
 import asyncio
 import aiofiles
+from pathlib import Path  
 from concurrent.futures import ThreadPoolExecutor
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from typing import Optional
 from config import COMMAND_PREFIX
+from utils import progress_bar  # Import progress_bar from utils
 import urllib.parse
 
 # Configure logging
@@ -21,14 +25,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Configuration
+class Config:
+    TEMP_DIR = Path("temp")
+
+Config.TEMP_DIR.mkdir(exist_ok=True)
+
 # ThreadPoolExecutor for blocking I/O operations
 executor = ThreadPoolExecutor(max_workers=10)
 
 async def sanitize_filename(title: str) -> str:
     """Sanitize file name by removing invalid characters."""
-    title = re.sub(r'[<>:"/\\|?*]', '', title)
-    title = title.replace(' ', '_')
-    return f"{title[:50]}_{int(time.time())}"
+    title = re.sub(r'[<>:"/\\|?*]', '', title[:50]).replace(' ', '_')
+    return f"{title}_{int(time.time())}"
 
 async def download_image(url: str, output_path: str) -> Optional[str]:
     """Download image from a URL."""
@@ -134,9 +143,9 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
             # Download cover image
             cover_path = None
             if cover_url:
-                os.makedirs("temp_media", exist_ok=True)
-                cover_path = f"temp_media/{await sanitize_filename(title)}.jpg"
-                downloaded_path = await download_image(cover_url, cover_path)
+                Config.TEMP_DIR.mkdir(exist_ok=True)
+                cover_path = Config.TEMP_DIR / f"{await sanitize_filename(title)}.jpg"
+                downloaded_path = await download_image(cover_url, str(cover_path))
                 if downloaded_path:
                     logger.info(f"Cover image downloaded to {downloaded_path}")
                 else:
@@ -145,7 +154,7 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
 
             # Download audio
             safe_title = await sanitize_filename(title)
-            output_filename = f"temp_media/{safe_title}.mp3"
+            output_filename = Config.TEMP_DIR / f"{safe_title}.mp3"
             logger.info(f"Starting download of audio file from {download_url}")
             async with session.get(download_url) as response:
                 if response.status == 200:
@@ -162,7 +171,7 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
                 user_info = f"[{user_full_name}](tg://user?id={message.from_user.id})"
             else:
                 group_name = message.chat.title or "this group"
-                group_url = f"https://t.me/{message.chat.username}" if message.chat.username else group_name
+                group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
                 user_info = f"[{group_name}]({group_url})"
 
             # Format caption without the Spotify URL text link
@@ -187,12 +196,12 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
             logger.info("Starting upload of audio file to Telegram")
             await client.send_audio(
                 chat_id=message.chat.id,
-                audio=output_filename,
+                audio=str(output_filename),
                 caption=audio_caption,
                 title=title,
                 performer=artists,
                 parse_mode=ParseMode.MARKDOWN,
-                thumb=cover_path if cover_path else None,
+                thumb=str(cover_path) if cover_path else None,
                 reply_markup=reply_markup,
                 progress=progress_bar,
                 progress_args=(status_message, start_time, last_update_time)
@@ -200,39 +209,14 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
             logger.info("Upload of audio file to Telegram completed")
 
             os.remove(output_filename)
-            if cover_path:
+            if cover_path and os.path.exists(cover_path):
                 os.remove(cover_path)
+                logger.info(f"Deleted cover image: {cover_path}")
 
             await status_message.delete()
     except Exception as e:
         await status_message.edit_text("**❌ Sorry Bro Spotify DL API Dead**", parse_mode=ParseMode.MARKDOWN)
         logger.error(f"Error processing Spotify request: {e}")
-
-async def progress_bar(current, total, status_message, start_time, last_update_time):
-    """Display a progress bar for uploads."""
-    elapsed_time = time.time() - start_time
-    percentage = (current / total) * 100
-    progress = "▓" * int(percentage // 5) + "░" * (20 - int(percentage // 5))
-    speed = current / elapsed_time / 1024 / 1024  # Speed in MB/s
-    uploaded = current / 1024 / 1024  # Uploaded size in MB
-    total_size = total / 1024 / 1024  # Total size in MB
-
-    # Throttle updates: Only update if at least 2 seconds have passed since the last update
-    if time.time() - last_update_time[0] < 2:
-        return
-    last_update_time[0] = time.time()  # Update the last update time
-
-    text = (
-        f"📥 Upload Progress 📥\n\n"
-        f"{progress}\n\n"
-        f"🚧 Percentage: {percentage:.2f}%\n"
-        f"⚡️ Speed: {speed:.2f} MB/s\n"
-        f"📶 Uploaded: {uploaded:.2f} MB of {total_size:.2f} MB"
-    )
-    try:
-        await status_message.edit_text(text)
-    except Exception as e:
-        logger.error(f"Error updating progress: {e}")
 
 def setup_spotify_handler(app: Client):
     # Create a regex pattern from the COMMAND_PREFIX list
