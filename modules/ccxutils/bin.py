@@ -3,15 +3,22 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import BIN_KEY, COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 import pycountry
 
 # Fetch BIN info from API
-def get_bin_info(bin):
+def get_bin_info(bin, client, message):
     headers = {'x-api-key': BIN_KEY}
-    response = requests.get(f"https://data.handyapi.com/bin/{bin}", headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    return None
+    try:
+        response = requests.get(f"https://data.handyapi.com/bin/{bin}", headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"API returned status code {response.status_code}")
+    except Exception as e:
+        # Notify admins about the error
+        asyncio.create_task(notify_admin(client, "/bin", e, message))
+        return None
 
 # Get country flag emoji
 def get_flag(country_code):
@@ -33,7 +40,7 @@ def setup_bin_handler(app: Client):
 
         bin = user_input[1]
         progress_message = await client.send_message(message.chat.id, "**Fetching Bin Details...**")
-        bin_info = get_bin_info(bin[:6])
+        bin_info = get_bin_info(bin[:6], client, message)
         await progress_message.delete()
 
         if not bin_info or bin_info.get("Status") != "SUCCESS":
