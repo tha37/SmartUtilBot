@@ -1,3 +1,5 @@
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import shutil
 import asyncio
@@ -7,6 +9,15 @@ from pyrogram.enums import ParseMode
 from pyrogram.handlers import MessageHandler
 from pyrogram.types import Message
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
+
+# Configure logging
+import logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 async def check_git_installed():
     """Check if git is available on server"""
@@ -17,8 +28,13 @@ async def check_git_installed():
             stderr=asyncio.subprocess.PIPE
         )
         await proc.wait()
-        return proc.returncode == 0
-    except:
+        if proc.returncode != 0:
+            raise Exception("Git is not installed or not working")
+        return True
+    except Exception as e:
+        logger.error(f"Git installation check failed: {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}git", e, None)
         return False
 
 async def get_repo_branches(repo_url):
@@ -29,19 +45,28 @@ async def get_repo_branches(repo_url):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout, _ = await proc.communicate()
-        if proc.returncode == 0:
-            return [line.split("refs/heads/")[-1] 
-                   for line in stdout.decode().splitlines() 
-                   if "refs/heads/" in line]
-    except:
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            raise Exception(f"Failed to fetch branches: {stderr.decode()}")
+        return [line.split("refs/heads/")[-1] 
+                for line in stdout.decode().splitlines() 
+                if "refs/heads/" in line]
+    except Exception as e:
+        logger.error(f"Error fetching branches for repo '{repo_url}': {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}git", e, None)
         return None
 
 async def fetch_github_api(session, url):
     """Fetch data from GitHub API"""
-    async with session.get(url) as response:
-        if response.status == 200:
+    try:
+        async with session.get(url) as response:
+            response.raise_for_status()  # Raise an exception for non-200 status codes
             return await response.json()
+    except aiohttp.ClientError as e:
+        logger.error(f"GitHub API error for URL '{url}': {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}git", e, None)
         return None
 
 async def get_github_repo_details(repo_url):
@@ -56,14 +81,17 @@ async def get_github_repo_details(repo_url):
             repo_data = await fetch_github_api(session, api_url)
             
             if not repo_data:
-                return None
+                raise Exception("Failed to fetch repo details")
                 
             return {
                 'forks_count': repo_data.get('forks_count', 0),
                 'description': repo_data.get('description', 'No description available'),
                 'default_branch': repo_data.get('default_branch', 'main')
             }
-    except:
+    except Exception as e:
+        logger.error(f"Error fetching GitHub repo details for '{repo_url}': {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}git", e, None)
         return None
 
 async def git_download_handler(client, message):
@@ -71,7 +99,7 @@ async def git_download_handler(client, message):
     if not await check_git_installed():
         await client.send_message(
             chat_id=message.chat.id,
-            text="<b>❌This Repo Can Not Be Installed On My Server </b>",
+            text="<b>❌ This Repo Can Not Be Installed On My Server </b>",
             parse_mode=ParseMode.HTML
         )
         return
@@ -91,7 +119,7 @@ async def git_download_handler(client, message):
     if "github.com" not in repo_url:
         await client.send_message(
             chat_id=message.chat.id,
-            text="<b>❌Invalid Github URL Or Repo Unavailable</b>",
+            text="<b>❌ Invalid Github URL Or Repo Unavailable</b>",
             parse_mode=ParseMode.HTML
         )
         return
@@ -121,6 +149,8 @@ async def git_download_handler(client, message):
                 text="<b>Broh The Repository Is Private </b>",
                 parse_mode=ParseMode.HTML
             )
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}git", Exception("Repository is private or inaccessible"), message)
             return
 
         # Determine branch to use
@@ -159,7 +189,7 @@ async def git_download_handler(client, message):
 
         # Create zip archive
         await status_msg.edit_text(
-            "<b>✨ CompressingThe Repository...</b>",
+            "<b>✨ Compressing The Repository...</b>",
             parse_mode=ParseMode.HTML
         )
         zip_path = f"{clone_dir}.zip"
@@ -167,7 +197,7 @@ async def git_download_handler(client, message):
 
         # Prepare repository details message
         repo_info = (
-            "<b>📁Downloaded Repository Details</b>\n"
+            "<b>📁 Downloaded Repository Details</b>\n"
             "━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 <b>Repo Owner:</b> <code>{user_name}</code>\n"
             f"📂 <b>Repo Name:</b> <code>{repo_name}</code>\n"
@@ -192,9 +222,13 @@ async def git_download_handler(client, message):
         )
 
     except Exception as e:
+        logger.error(f"Error downloading GitHub repo '{repo_url}': {e}")
+        # Notify admins
+        await notify_admin(client, f"{COMMAND_PREFIX}git", e, message)
+        # Send user-facing error message
         await client.send_message(
             chat_id=message.chat.id,
-            text=f"<b>❌ Sorry Bro Github Repo Dl API Dead</b>",
+            text="<b>❌ Sorry Bro Github Repo Dl API Dead</b>",
             parse_mode=ParseMode.HTML
         )
     finally:
@@ -205,8 +239,10 @@ async def git_download_handler(client, message):
                 shutil.rmtree(clone_dir)
             if 'zip_path' in locals() and os.path.exists(zip_path):
                 os.remove(zip_path)
-        except:
-            pass
+        except Exception as e:
+            logger.error(f"Cleanup error: {e}")
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}git", e, message)
 
 def setup_git_handler(app):
     """Register git command handler"""
