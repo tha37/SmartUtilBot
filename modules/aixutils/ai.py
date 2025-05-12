@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import io
 import logging
@@ -7,6 +7,7 @@ import requests
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 API_URL = "https://abirthetech.serv00.net/ai.php"
 
@@ -46,3 +47,5 @@ def setup_ai_handler(app: Client):
             logging.error(f"Error during text generation: {e}")
             if loading_message:
                 await client.edit_message_text(message.chat.id, loading_message.id, "**🔍Sorry Bro Smart AI ✨ API Dead**")
+                # Notify admins about the error
+                await notify_admin(client, "/ai", e, message)
