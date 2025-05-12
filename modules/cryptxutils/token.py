@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import requests
 import asyncio
@@ -8,6 +8,7 @@ from pyrogram import Client as PyroClient, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +61,9 @@ def setup_crypto_handler(app: PyroClient):
 
         except Exception as e:
             logger.error(f"Error fetching data for {token}: {e}")
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}price", e, message)
+            # Send user-facing error message
             await fetching_message.edit(f"❌ <b>Nothing Detected From Binance Database</b>", parse_mode=ParseMode.HTML)
 
     @app.on_callback_query(filters.regex(r"refresh_(.*)"))
@@ -83,4 +87,7 @@ def setup_crypto_handler(app: PyroClient):
 
         except Exception as e:
             logger.error(f"Error fetching data for {token}: {e}")
+            # Notify admins
+            await notify_admin(client, "refresh_callback", e, callback_query.message)
+            # Send user-facing error message
             await callback_query.answer(f"❌ No Changes Detected From Binance Database", show_alert=True)
