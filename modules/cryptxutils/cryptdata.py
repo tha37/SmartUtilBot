@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import requests
 import asyncio
@@ -7,6 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 BASE_URL = "https://api.binance.com/api/v3/ticker/24hr"
 
@@ -66,6 +67,8 @@ def setup_binance_handler(app: Client):
         except Exception as e:
             await fetching_message.delete()
             await client.send_message(message.chat.id, f"<b>❌ Sorry Binance API Dead</b>", parse_mode=ParseMode.HTML)
+            # Notify admins about the error
+            await notify_admin(client, f"/{command}", e, message)
 
     @app.on_callback_query(filters.regex(r"^(gainers|losers)_\d+"))
     async def handle_pagination(client: Client, callback_query: CallbackQuery):
@@ -98,3 +101,5 @@ def setup_binance_handler(app: Client):
 
         except Exception as e:
             await callback_query.message.edit_text(f"<b>❌ Sorry Bro Binance API Dead</b>", parse_mode=ParseMode.HTML)
+            # Notify admins about the error
+            await notify_admin(client, f"/{command}", e, callback_query.message)
