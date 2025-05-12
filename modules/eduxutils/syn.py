@@ -5,19 +5,35 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import Message
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 from typing import Tuple, List
+
+# Configure logging
+import logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 # Function to fetch synonyms and antonyms using Datamuse API
 async def fetch_synonyms_antonyms(word: str) -> Tuple[List[str], List[str]]:
-    async with aiohttp.ClientSession() as session:
-        synonyms_url = f"https://api.datamuse.com/words?rel_syn={word}"
-        antonyms_url = f"https://api.datamuse.com/words?rel_ant={word}"
-        
-        async with session.get(synonyms_url) as syn_response, session.get(antonyms_url) as ant_response:
-            synonyms = [syn['word'] for syn in await syn_response.json()]
-            antonyms = [ant['word'] for ant in await ant_response.json()]
+    synonyms_url = f"https://api.datamuse.com/words?rel_syn={word}"
+    antonyms_url = f"https://api.datamuse.com/words?rel_ant={word}"
     
-    return synonyms, antonyms
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(synonyms_url) as syn_response, session.get(antonyms_url) as ant_response:
+                syn_response.raise_for_status()  # Raise an exception for non-200 status codes
+                ant_response.raise_for_status()
+                synonyms = [syn['word'] for syn in await syn_response.json()]
+                antonyms = [ant['word'] for ant in await ant_response.json()]
+        return synonyms, antonyms
+    except (aiohttp.ClientError, ValueError) as e:
+        logger.error(f"Datamuse API error for word '{word}': {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}syn", e, None)
+        raise
 
 def setup_syn_handler(app: Client):
     @app.on_message(filters.command(["syn", "synonym"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
@@ -62,7 +78,11 @@ def setup_syn_handler(app: Client):
 
             await loading_message.edit(response_text, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
+            logger.error(f"Error processing synonyms/antonyms for word '{word}': {e}")
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}syn", e, message)
+            # Send user-facing error message
             await loading_message.edit(
-                "**Synonym Antonym API Dead**",
+                "**❌ Sorry, Synonym/Antonym API Failed**",
                 parse_mode=ParseMode.MARKDOWN
             )
