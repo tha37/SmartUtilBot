@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import time
 import re
@@ -13,7 +13,7 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import Message
 from config import COMMAND_PREFIX
-from utils import progress_bar  # Import progress_bar from utils
+from utils import progress_bar, notify_admin  # Import progress_bar and notify_admin from utils
 
 # Configure logging
 logging.basicConfig(
@@ -48,12 +48,16 @@ async def download_video(url: str, downloading_message: Message) -> Optional[dic
 
         if data.get("error"):
             logger.error(f"API error: {data['error']}")
+            # Notify admins
+            await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}tt", Exception(f"API error: {data['error']}"), downloading_message)
             return None
 
         info = data["data"]
         video_url = info.get("mp4")
         if not video_url:
             logger.error("No video URL found in API response")
+            # Notify admins
+            await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}tt", Exception("No video URL found in API response"), downloading_message)
             return None
 
         await downloading_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
@@ -76,9 +80,13 @@ async def download_video(url: str, downloading_message: Message) -> Optional[dic
                     }
                 else:
                     logger.error(f"Failed to download video: HTTP {video_response.status}")
+                    # Notify admins
+                    await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}tt", Exception(f"Failed to download video: HTTP {video_response.status}"), downloading_message)
                     return None
     except Exception as e:
         logger.error(f"Error downloading video: {e}")
+        # Notify admins
+        await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}tt", e, downloading_message)
         return None
 
 def setup_tt_handler(app: Client):
@@ -157,4 +165,7 @@ def setup_tt_handler(app: Client):
 
         except Exception as e:
             logger.error(f"An error occurred: {e}")
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}tt", e, message)
+            # Send user-facing error message
             await status_message.edit_text("**TikTok Downloader API Dead**", parse_mode=ParseMode.MARKDOWN)
