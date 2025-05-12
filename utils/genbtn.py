@@ -432,29 +432,25 @@ responses = {
         "<b>🔔 For Bot Update News</b>: <a href='{UPDATE_CHANNEL_URL}'>Join Now</a>".format(UPDATE_CHANNEL_URL=UPDATE_CHANNEL_URL),
         {'parse_mode': ParseMode.HTML, 'disable_web_page_preview': True}
     ),
-    "translate": (
-        "<b>🌐 Google Translator Utils ⚙️</b>\n"
-        "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b>USAGE:</b>\n"
-        "Translate text into various languages using these commands:\n\n"
-        "➢ <b>/tr [Language Code] [Text]</b> - Translate the given text into the specified language.\n"
-        "   - Example: <code>/tr es Hello!</code> (Translates 'Hello!' to Spanish)\n"
-        "   - Reply Example: Reply to any message with <code>/tres</code> to translate it into Spanish.\n\n"
-        "➢ <b>/tr en [Text]</b> - Translate the given text into English.\n"
-        "   - Example: <code>/tr en Hola!</code> (Translates 'Hola!' to English)\n"
-        "   - Reply Example: Reply to any message with <code>/tr en</code> to translate it into English.\n\n"
-        "➢ <b>/tr bn [Text]</b> - Translate the given text into Bengali.\n"
-        "   - Example: <code>/tr bn Hello!</code> (Translates 'Hello!' to Bengali)\n"
-        "   - Reply Example: Reply to any message with <code>/tr bn</code> to translate it into Bengali.\n\n"
-        "<b>✨NOTE:</b>\n"
-        "1️⃣ Use the <code>/tr[Language Code]</code> format for translation, where <code>[Language Code]</code> specifies the target language (e.g., <code>es</code> for Spanish, <code>fr</code> for French).\n"
-        "2️⃣ Supported commands include <code>/tr en</code> (English), <code>/tr bn</code> (Bengali), <code>/tr hi</code> (Hindi), and others.\n"
-        "3️⃣ To translate, either type the text with the command or reply to a message with the command.\n"
-        "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b>🔔 For Bot Update News</b>: <a href='{UPDATE_CHANNEL_URL}'>Join Now</a>".format(UPDATE_CHANNEL_URL=UPDATE_CHANNEL_URL),
-        {'parse_mode': ParseMode.HTML, 'disable_web_page_preview': True}
+"translate": (
+    "<b>🌐 Translation Commands</b>\n"
+    "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
+    "<b>USAGE:</b>\n"
+    "Translate text into various languages using these commands:\n\n"
+    "➢ <b>/tr[Language Code] [Text]</b> - Translate the given text into the specified language.\n"
+    "   - Example: <code>/tres Hello!</code> (Translates 'Hello!' to Spanish)\n"
+    "   - Reply Example: Reply to any message with <code>/tres</code> to translate it into Spanish.\n\n"
+    "➢ <b>/tr [Language]</b> - Translate the text in an image to the specified language.\n"
+    "   - Example: Reply to a photo with <code>/tr ja</code> to translate its text to Japanese.\n"
+    "   - Supported: Use language names or codes (e.g., <code>/tr en</code>, <code>/tr bangla</code>, <code>/tr fr</code>)\n\n"
+    "<b>NOTE:</b>\n"
+    "1️⃣ Use the <code>/tr[Language Code]</code> format for text translation.\n"
+    "2️⃣ Use <code>/tr</code> as a reply to a photo for image translation.\n"
+    "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
+    "<b>🔔 For Bot Update News</b>: <a href='{UPDATE_CHANNEL_URL}'>Join Now</a>".format(UPDATE_CHANNEL_URL=UPDATE_CHANNEL_URL),
+    {'parse_mode': ParseMode.HTML, 'disable_web_page_preview': True}
     ),
-    "text_ocr": (
+"text_ocr": (
         "<b>🔍 OCR Utils ⚙️</b>\n"
         "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
         "<b>USAGE:</b>\n"
@@ -577,15 +573,8 @@ responses = {
         "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
         "<b>USAGE:</b>\n"
         "Get the current weather information for any city using these commands:\n\n"
-        "➢ <b>/weather [City Name]</b> - Get the current weather for a city.\n"
-        "   - Example: <code>/weather Delhi</code> (Fetches weather for Delhi)\n\n"
-        "➢ <b>/forecast [City Name]</b> - Get the current weather for a city.\n"
-        "   - Example: <code>/forecast Delhi</code> (Fetches weather for Delhi)\n\n"
-        "Get the current weather information for any city using these commands:\n\n"
-        "➢ <b>/climate [City Name]</b> - Get the current weather for a city.\n"
-        "   - Example: <code>/climate Delhi</code> (Fetches weather for Delhi)\n\n"
-        "➢ <b>/atmosphere [City Name]</b> - Get the current weather for a city.\n"
-        "   - Example: <code>/atmosphere Delhi</code> (Fetches weather for Delhi)\n\n"
+        "➢ <b>/w [City Name]</b> - Get the current weather for a city.\n"
+        "   - Example: <code>/w Delhi</code> (Fetches weather for Delhi)\n\n"
         "<b>✨NOTE:</b>\n"
         "1️⃣ Ensure you provide a valid city name with the commands.\n\n"
         "<b>🔔 For Bot Update News</b>: <a href='{UPDATE_CHANNEL_URL}'>Join Now</a>".format(UPDATE_CHANNEL_URL=UPDATE_CHANNEL_URL),
