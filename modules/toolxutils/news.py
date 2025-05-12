@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import requests
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Function to get country name from country code
-def get_country_name(country_code):
+def get_country_name(country_code: str) -> str:
     try:
         country = pycountry.countries.get(alpha_2=country_code.upper())
         return country.name if country else country_code.upper()
@@ -25,7 +25,7 @@ def get_country_name(country_code):
         return country_code.upper()
 
 # Fetch news from the NewsData API
-def fetch_news(country_code, page_token=None):
+def fetch_news(country_code: str, page_token: str | None = None) -> dict:
     url = f"https://newsdata.io/api/1/news?country={country_code}&apikey={NEWS_API_KEY}"
     if page_token:
         url += f"&page={page_token}"
@@ -33,39 +33,55 @@ def fetch_news(country_code, page_token=None):
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         response_json = response.json()
-        logger.info(f"Fetched news: {response_json}")
+        logger.info(f"Fetched news for {country_code}: {response_json}")
         if response_json.get("status") == "error":
             raise ValueError(response_json.get("results", {}).get("message", "Error fetching news"))
         return response_json
     except requests.exceptions.RequestException as e:
-        logger.error(f"Network error fetching news: {e}")
+        logger.error(f"Network error fetching news for {country_code}: {e}")
         raise
     except Exception as e:
-        logger.error(f"Error fetching news: {e}")
+        logger.error(f"Error fetching news for {country_code}: {e}")
         raise
 
 # Send news in a formatted message with pagination
-async def send_news(client, chat_id, data, country_code, prev_page_token=None, next_page_token=None, message_id=None):
+async def send_news(
+    client: Client,
+    chat_id: int,
+    data: dict,
+    country_code: str,
+    prev_page_token: str | None = None,
+    next_page_token: str | None = None,
+    message_id: int | None = None
+):
     news_list = data.get("results", [])
     if not news_list:
-        await client.edit_message_text(
-            chat_id,
-            message_id,
-            "**Google News API Dead**",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        error_msg = "**No News Available**"
+        if message_id:
+            await client.edit_message_text(
+                chat_id,
+                message_id,
+                error_msg,
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            await client.send_message(
+                chat_id,
+                error_msg,
+                parse_mode=ParseMode.MARKDOWN
+            )
         return
 
-    text = "**Top Headlines**\n"
+    text = f"**Top Headlines ({get_country_name(country_code)})**\n\n"
     for news in news_list:
         title = news.get('title', 'No title')
         source_name = news.get('source_name', 'Unknown source')
         pub_date = news.get('pubDate', 'Unknown date')
         link = news.get('link', '#')
         text += f"━━━━━━━━━━━━━━━━\n"
-        text += f"📰 **Title:** {title}\n"
-        text += f"🏢 **Source:** {source_name}\n"
-        text += f"⏰ **Publish At:** {pub_date}\n"
+        text += f"📰 **Title**: {title}\n"
+        text += f"🏢 **Source**: {source_name}\n"
+        text += f"⏰ **Published**: {pub_date}\n"
         text += f"🔗 [Read More]({link})\n\n"
 
     buttons = []
@@ -74,7 +90,7 @@ async def send_news(client, chat_id, data, country_code, prev_page_token=None, n
     if next_page_token:
         buttons.append(InlineKeyboardButton("Next", callback_data=f"{country_code}_next_{next_page_token}"))
 
-    reply_markup = InlineKeyboardMarkup([buttons])
+    reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
     if message_id:
         await client.edit_message_text(
             chat_id,
@@ -94,38 +110,40 @@ async def send_news(client, chat_id, data, country_code, prev_page_token=None, n
         )
 
 # Setup news handlers
-def setup_news_handler(app):
+def setup_news_handler(app: Client):
     @app.on_message(filters.command(["news"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
-    async def news(client, message):
+    async def news(client: Client, message):
         temp_message = None
         try:
+            if len(message.command) < 2:
+                await client.send_message(
+                    message.chat.id,
+                    "**Please provide a country code (e.g., /news us)**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
             country_code = message.command[1].lower()
-            logger.info(f"Received country code: {country_code}")
-            # Send temporary "Searching" message
+            logger.info(f"Received news request for country code: {country_code}")
             country_name = get_country_name(country_code)
             temp_message = await client.send_message(
                 message.chat.id,
-                f"**Searching News For {country_name}**",
+                f"**Searching News for {country_name}**",
                 parse_mode=ParseMode.MARKDOWN
             )
-            # Fetch news
             data = fetch_news(country_code)
-            next_page_token = data.get("nextPage")
-            # Edit temporary message with news
-            await send_news(client, message.chat.id, data, country_code, next_page_token=next_page_token, message_id=temp_message.id)
-        except IndexError:
-            await client.send_message(
+            await send_news(
+                client,
                 message.chat.id,
-                "**Please provide a valid country code**",
-                parse_mode=ParseMode.MARKDOWN
+                data,
+                country_code,
+                next_page_token=data.get("nextPage"),
+                message_id=temp_message.id
             )
         except Exception as e:
             logger.error(f"Error handling news command: {e}")
-            error_msg = "**News API Database Error**"
-            # Notify admins of error
-            await notify_admin(client, "/news", e, message)
-            # Edit temporary message with error
-            if 'temp_message' in locals():
+            error_msg = "**News API Error**"
+            await notify_admin(client, f"{COMMAND_PREFIX}news", e, message)
+            if temp_message:
                 await client.edit_message_text(
                     message.chat.id,
                     temp_message.id,
@@ -140,39 +158,32 @@ def setup_news_handler(app):
                 )
 
     @app.on_callback_query(filters.regex(r"(\w+)_prev_(.+)"))
-    async def prev_page(client, callback_query):
+    async def prev_page(client: Client, callback_query):
         temp_message = None
         try:
             country_code, prev_page_token = callback_query.data.split("_")[0], callback_query.data.split("_")[2]
-            logger(clock_query.data.split("_")[2]
-            logger.info(f"Handling previous page: {country_code}, {prev_page_token}")
-            # Send temporary "Searching" message
+            logger.info(f"Fetching previous page for {country_code}, token: {prev_page_token}")
             country_name = get_country_name(country_code)
             temp_message = await client.send_message(
                 callback_query.message.chat.id,
-                f"**Searching News For {country_name}**",
+                f"**Searching News for {country_name}**",
                 parse_mode=ParseMode.MARKDOWN
             )
-            # Fetch news
             data = fetch_news(country_code, prev_page_token)
-            next_page_token = data.get("nextPage")
-            # Edit temporary message with news
             await send_news(
                 client,
                 callback_query.message.chat.id,
                 data,
                 country_code,
-                prev_page_token,
-                next_page_token,
-                temp_message.id
+                prev_page_token=None,  # No previous page for the previous fetch
+                next_page_token=data.get("nextPage"),
+                message_id=temp_message.id
             )
         except Exception as e:
             logger.error(f"Error handling previous page: {e}")
-            error_msg = "**News API Database Error**"
-            # Notify admins of error
-            await notify_admin(client, "news_prev", e, callback_query.message)
-            # Edit temporary message with error
-            if 'temp_message' in locals():
+            error_msg = "**News API Error**"
+            await notify_admin(client, f"{COMMAND_PREFIX}news_prev", e, callback_query.message)
+            if temp_message:
                 await client.edit_message_text(
                     callback_query.message.chat.id,
                     temp_message.id,
@@ -187,38 +198,32 @@ def setup_news_handler(app):
                 )
 
     @app.on_callback_query(filters.regex(r"(\w+)_next_(.+)"))
-    async def next_page(client, callback_query):
+    async def next_page(client: Client, callback_query):
         temp_message = None
         try:
             country_code, next_page_token = callback_query.data.split("_")[0], callback_query.data.split("_")[2]
-            logger.info(f"Handling next page: {country_code}, {next_page_token}")
-            # Send temporary "Searching" message
+            logger.info(f"Fetching next page for {country_code}, token: {next_page_token}")
             country_name = get_country_name(country_code)
             temp_message = await client.send_message(
                 callback_query.message.chat.id,
-                f"**Searching News For {country_name}**",
+                f"**Searching News for {country_name}**",
                 parse_mode=ParseMode.MARKDOWN
             )
-            # Fetch news
             data = fetch_news(country_code, next_page_token)
-            prev_page_token = callback_query.data.split("_")[2]  # Use the current token as the previous token for the next fetch
-            # Edit temporary message with news
             await send_news(
                 client,
                 callback_query.message.chat.id,
                 data,
                 country_code,
-                prev_page_token,
-                data.get("nextPage"),
-                temp_message.id
+                prev_page_token=next_page_token,  # Current token becomes previous for next fetch
+                next_page_token=data.get("nextPage"),
+                message_id=temp_message.id
             )
         except Exception as e:
             logger.error(f"Error handling next page: {e}")
-            error_msg = "**News API Database Error**"
-            # Notify admins of error
-            await notify_admin(client, "news_next", e, callback_query.message)
-            # Edit temporary message with error
-            if 'temp_message' in locals():
+            error_msg = "**News API Error**"
+            await notify_admin(client, f"{COMMAND_PREFIX}news_next", e, callback_query.message)
+            if temp_message:
                 await client.edit_message_text(
                     callback_query.message.chat.id,
                     temp_message.id,
