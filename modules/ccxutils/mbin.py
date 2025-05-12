@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import requests
 import asyncio
@@ -7,22 +7,24 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import BIN_KEY, COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 # Set up logging
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-
-async def get_bin_info(bin):
+async def get_bin_info(bin, client, message):
     headers = {'x-api-key': BIN_KEY}
-    response = requests.get(f"https://data.handyapi.com/bin/{bin}", headers=headers)
-    if response.status_code == 200:
-        try:
+    try:
+        response = requests.get(f"https://data.handyapi.com/bin/{bin}", headers=headers)
+        if response.status_code == 200:
             return response.json()
-        except ValueError as e:
-            logging.error(f"Error parsing JSON response for BIN: {bin} - {e}")
-            return None
-    logging.error(f"Failed to retrieve info for BIN: {bin} with status code: {response.status_code}")
-    return None
+        else:
+            raise Exception(f"API returned status code {response.status_code}")
+    except Exception as e:
+        logging.error(f"Error retrieving info for BIN: {bin} - {e}")
+        # Notify admins about the error
+        await notify_admin(client, "/mbin", e, message)
+        return None
 
 def get_flag_emoji(country_code):
     if len(country_code) == 2:
@@ -31,7 +33,7 @@ def get_flag_emoji(country_code):
 
 def setup_mbin_handler(app: Client):
     @app.on_message(filters.command(["mbin"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
-    async def bin_handler(client, message: Message):
+    async def bin_handler(client: Client, message: Message):
         logging.info(f"Received /mbin command from user: {message.from_user.id}")
         bins = []
         
@@ -66,7 +68,7 @@ def setup_mbin_handler(app: Client):
         results = []
 
         async def fetch_bin_info(bin):
-            bin_info = await get_bin_info(bin)
+            bin_info = await get_bin_info(bin, client, message)
             if isinstance(bin_info, dict):
                 if bin_info.get('Status') == "SUCCESS":
                     country_code = bin_info.get('Country', {}).get('A2', '')
