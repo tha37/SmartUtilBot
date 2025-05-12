@@ -36,8 +36,7 @@ def image_to_base64(image_path: str, max_size: int = IMGAI_SIZE_LIMIT) -> str:
             return base64.b64encode(buffered.getvalue()).decode("utf-8")
     except Exception as e:
         logger.error(f"Error converting image to base64: {e}")
-        # Notify admins
-        await notify_admin(None, f"{COMMAND_PREFIX}tr", e, None)
+        # Cannot use await here; log the error and raise (notify_admin will be handled by caller)
         raise
 
 # Google Translate Library
@@ -47,8 +46,7 @@ def translate_text(text: str, target_lang: str) -> str:
         return translation.text
     except Exception as e:
         logger.error(f"Translation error: {e}")
-        # Notify admins
-        await notify_admin(None, f"{COMMAND_PREFIX}tr", e, None)
+        # Cannot use await here; log the error and raise (notify_admin will be handled by caller)
         raise
 
 async def ocr_extract_text(client: Client, message: Message) -> str:
@@ -61,7 +59,11 @@ async def ocr_extract_text(client: Client, message: Message) -> str:
         )
 
         logger.info("Converting image to base64...")
-        img_base64 = image_to_base64(photo_path)
+        try:
+            img_base64 = image_to_base64(photo_path)
+        except Exception as e:
+            await notify_admin(client, f"{COMMAND_PREFIX}tr", e, message)
+            raise
 
         logger.info("Sending image to OCR API...")
         async with aiohttp.ClientSession() as session:
@@ -81,7 +83,6 @@ async def ocr_extract_text(client: Client, message: Message) -> str:
                 return text
     except Exception as e:
         logger.error(f"OCR Error: {e}")
-        # Notify admins
         await notify_admin(client, f"{COMMAND_PREFIX}tr", e, message)
         raise
     finally:
@@ -103,7 +104,7 @@ async def translate_handler(client: Client, message: Message):
         if len(message.command) < 2:
             await client.send_message(
                 chat_id=message.chat.id,
-                text="**❌ Bro! That's not a valid language code!**",
+                text="**❌ Invalid language code!**",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
@@ -113,7 +114,7 @@ async def translate_handler(client: Client, message: Message):
     if target_lang not in LANGUAGES:
         await client.send_message(
             chat_id=message.chat.id,
-            text="**❌ Bro! That's not a valid language code!**.",
+            text="**❌ Invalid language code!**",
             parse_mode=ParseMode.MARKDOWN
         )
         return
@@ -124,7 +125,7 @@ async def translate_handler(client: Client, message: Message):
         if not text_to_translate:
             await client.send_message(
                 chat_id=message.chat.id,
-                text="**❌ Bro! That's not a valid language code!**.",
+                text="**❌ No text provided to translate!**",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
@@ -132,14 +133,14 @@ async def translate_handler(client: Client, message: Message):
         if not message.reply_to_message.photo:
             await client.send_message(
                 chat_id=message.chat.id,
-                text="**❌ Bro! That's not a valid language code!**",
+                text="**❌ Reply to a valid photo for OCR!**",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
     else:
         await client.send_message(
             chat_id=message.chat.id,
-            text="**❌ Bro! That's not a valid language code!**",
+            text="**❌ Provide text or reply to a photo!**",
             parse_mode=ParseMode.MARKDOWN
         )
         return
@@ -157,24 +158,26 @@ async def translate_handler(client: Client, message: Message):
             text_to_translate = await ocr_extract_text(client, message)
             if not text_to_translate:
                 await loading_message.edit(
-                    text="**No Valid Text Found From The Image**",
+                    text="**No Valid Text Found In The Image**",
                     parse_mode=ParseMode.MARKDOWN
                 )
-                # Notify admins
                 await notify_admin(client, f"{COMMAND_PREFIX}tr", Exception("No valid text extracted from image"), message)
                 return
 
         # Translate the text
-        translated_text = translate_text(text_to_translate, target_lang)
+        try:
+            translated_text = translate_text(text_to_translate, target_lang)
+        except Exception as e:
+            await notify_admin(client, f"{COMMAND_PREFIX}tr", e, message)
+            raise
+
         await loading_message.edit(translated_text, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
         logger.error(f"Translation handler error: {e}")
-        # Notify admins
         await notify_admin(client, f"{COMMAND_PREFIX}tr", e, message)
-        # Send user-facing error message
         await loading_message.edit(
-            text="**❌ Sorry Translator API Dead**",
+            text="**❌ Translation API Error**",
             parse_mode=ParseMode.MARKDOWN
         )
 
