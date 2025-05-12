@@ -12,6 +12,7 @@ from pyrogram.enums import ParseMode
 from googletrans import Translator, LANGUAGES
 import logging
 from config import COMMAND_PREFIX, OCR_WORKER_URL, IMGAI_SIZE_LIMIT
+from utils import notify_admin  # Import notify_admin from utils
 
 # Logging Setup
 logging.basicConfig(level=logging.INFO)
@@ -22,16 +23,22 @@ translator = Translator()
 
 # Image To Base64
 def image_to_base64(image_path: str, max_size: int = IMGAI_SIZE_LIMIT) -> str:
-    file_size = os.path.getsize(image_path)
-    if file_size > max_size:
-        raise ValueError(f"Image too large. Max {max_size/1000000}MB allowed")
-    
-    with Image.open(image_path) as img:
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
-        buffered = BytesIO()
-        img.save(buffered, format="JPEG", quality=85)
-        return base64.b64encode(buffered.getvalue()).decode("utf-8")
+    try:
+        file_size = os.path.getsize(image_path)
+        if file_size > max_size:
+            raise ValueError(f"Image too large. Max {max_size/1000000}MB allowed")
+        
+        with Image.open(image_path) as img:
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            buffered = BytesIO()
+            img.save(buffered, format="JPEG", quality=85)
+            return base64.b64encode(buffered.getvalue()).decode("utf-8")
+    except Exception as e:
+        logger.error(f"Error converting image to base64: {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}tr", e, None)
+        raise
 
 # Google Translate Library
 def translate_text(text: str, target_lang: str) -> str:
@@ -39,9 +46,10 @@ def translate_text(text: str, target_lang: str) -> str:
         translation = translator.translate(text, dest=target_lang)
         return translation.text
     except Exception as e:
-        logger.error(f"Translation error: {str(e)}")
+        logger.error(f"Translation error: {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}tr", e, None)
         raise
-
 
 async def ocr_extract_text(client: Client, message: Message) -> str:
     photo_path = None
@@ -64,18 +72,22 @@ async def ocr_extract_text(client: Client, message: Message) -> str:
             ) as response:
                 if response.status != 200:
                     logger.error(f"API returned non-200 status: {response.status}")
-                    raise Exception("OCR API failed")
+                    raise Exception(f"OCR API failed with status: {response.status}")
                 
                 result = await response.json()
-                return result.get('text', '')
+                text = result.get('text', '')
+                if not text:
+                    logger.warning("No text extracted from image")
+                return text
     except Exception as e:
-        logger.error(f"OCR Error: {str(e)}")
+        logger.error(f"OCR Error: {e}")
+        # Notify admins
+        await notify_admin(client, f"{COMMAND_PREFIX}tr", e, message)
         raise
     finally:
         if photo_path and os.path.exists(photo_path):
             os.remove(photo_path)
             logger.info(f"Deleted temporary image file: {photo_path}")
-
 
 async def translate_handler(client: Client, message: Message):
     # Check if command is combined format (e.g., /tren)
@@ -116,8 +128,6 @@ async def translate_handler(client: Client, message: Message):
                 parse_mode=ParseMode.MARKDOWN
             )
             return
-
-
     elif photo_mode:
         if not message.reply_to_message.photo:
             await client.send_message(
@@ -126,7 +136,6 @@ async def translate_handler(client: Client, message: Message):
                 parse_mode=ParseMode.MARKDOWN
             )
             return
-
     else:
         await client.send_message(
             chat_id=message.chat.id,
@@ -151,6 +160,8 @@ async def translate_handler(client: Client, message: Message):
                     text="**No Valid Text Found From The Image**",
                     parse_mode=ParseMode.MARKDOWN
                 )
+                # Notify admins
+                await notify_admin(client, f"{COMMAND_PREFIX}tr", Exception("No valid text extracted from image"), message)
                 return
 
         # Translate the text
@@ -158,8 +169,14 @@ async def translate_handler(client: Client, message: Message):
         await loading_message.edit(translated_text, parse_mode=ParseMode.MARKDOWN)
 
     except Exception as e:
-        error_msg = "**❌ Sorry Translator API Dead**"
-        await loading_message.edit(text=error_msg, parse_mode=ParseMode.MARKDOWN)
+        logger.error(f"Translation handler error: {e}")
+        # Notify admins
+        await notify_admin(client, f"{COMMAND_PREFIX}tr", e, message)
+        # Send user-facing error message
+        await loading_message.edit(
+            text="**❌ Sorry Translator API Dead**",
+            parse_mode=ParseMode.MARKDOWN
+        )
 
 def setup_tr_handler(app: Client):
     @app.on_message(filters.command(["tr", "translate"] + [f"tr{code}" for code in LANGUAGES.keys()], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
