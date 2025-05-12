@@ -1,4 +1,4 @@
-pyrogram
+pyrofork
 requests
 aiohttp
 telethon
@@ -6,12 +6,9 @@ asyncio
 pytz
 pycountry
 beautifulsoup4
-tgcrypto
 pillow
 yt-dlp
-ffmpeg
 spotipy
-pillow
 python-dateutil
 pymongo
 gTTS
