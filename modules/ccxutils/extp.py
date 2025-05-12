@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import requests
 import random
 import pycountry
@@ -7,14 +7,21 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import BIN_KEY, COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 # Helper function to fetch BIN info
-def get_bin_info(bin):
+def get_bin_info(bin, client, message):
     headers = {'x-api-key': BIN_KEY}
-    response = requests.get(f"https://data.handyapi.com/bin/{bin}", headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    return None
+    try:
+        response = requests.get(f"https://data.handyapi.com/bin/{bin}", headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"API returned status code {response.status_code}")
+    except Exception as e:
+        # Notify admins about the error
+        asyncio.create_task(notify_admin(client, "/extp", e, message))
+        return None
 
 # Helper function to validate a number using Luhn's Algorithm
 def luhn_algorithm(number):
@@ -62,7 +69,7 @@ def setup_extp_handler(app):
         
         bin = command_parts[1]
         progress_message = await client.send_message(message.chat.id, "**Extrapolation In Progress...✨**", parse_mode=ParseMode.MARKDOWN)
-        bin_info = get_bin_info(bin)
+        bin_info = get_bin_info(bin, client, message)
         if not bin_info or bin_info.get('Status') != 'SUCCESS':
             await progress_message.edit_text("**BIN Not Found In Database❌**", parse_mode=ParseMode.MARKDOWN)
             return
@@ -93,7 +100,7 @@ def setup_extp_handler(app):
     @app.on_callback_query(filters.regex(r"^regenerate_\d{6}$"))
     async def regenerate_callback(client, callback_query):
         bin = callback_query.data.split("_")[1]
-        bin_info = get_bin_info(bin)
+        bin_info = get_bin_info(bin, client, callback_query.message)
         if not bin_info or bin_info.get('Status') != 'SUCCESS':
             await callback_query.message.edit_text("**❌Invalid BIN provided**", parse_mode=ParseMode.MARKDOWN)
             return
