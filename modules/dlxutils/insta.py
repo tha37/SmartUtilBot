@@ -44,7 +44,7 @@ class InstagramDownloader:
                         data = await response.json()
                         logger.info(f"API response: {data}")
                         if data["success"]:
-                            await downloading_message.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
+                            await downloadingarelli.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
                             video_url = data["result"][0]["downloadLink"]
                             title = data["result"][0].get("filename", "Instagram Reel")
                             filename = self.temp_dir / title
@@ -65,9 +65,8 @@ class InstagramDownloader:
         async with session.get(url) as response:
             if response.status == 200:
                 logger.info(f"Downloading video from {url} to {dest}")
-                f = await aiofiles.open(dest, mode='wb')
-                await f.write(await response.read())
-                await f.close()
+                async with aiofiles.open(dest, mode='wb') as f:
+                    await f.write(await response.read())
 
 def setup_insta_handlers(app: Client):
     ig_downloader = InstagramDownloader(Config.TEMP_DIR)
@@ -79,7 +78,7 @@ def setup_insta_handlers(app: Client):
     async def ig_handler(client: Client, message: Message):
         # Check if message is a reply to another message
         if message.reply_to_message and message.reply_to_message.text:
-            url = message.reply_to_message.text
+            url = message.reply_to_message.text.strip()
         else:
             command_parts = message.text.split(maxsplit=1)
             if len(command_parts) < 2:
@@ -89,7 +88,7 @@ def setup_insta_handlers(app: Client):
                     parse_mode=ParseMode.MARKDOWN
                 )
                 return
-            url = command_parts[1]
+            url = command_parts[1].strip()
 
         downloading_message = await client.send_message(
             chat_id=message.chat.id,
@@ -110,7 +109,7 @@ def setup_insta_handlers(app: Client):
                 else:
                     group_name = message.chat.title or "this group"
                     group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
-                    user_info = f"[{group_name]]({group_url})"
+                    user_info = f"[{group_name}]({group_url})"
 
                 caption = (
                     f"🎥 **Title**: **{title}**\n"
@@ -120,7 +119,7 @@ def setup_insta_handlers(app: Client):
                     f"**Downloaded By**: {user_info}"
                 )
                 
-                async with aiofiles.open(filename, 'rb') as video_file:
+                async with aiofiles.open(filename, 'rb'):
                     start_time = time.time()
                     last_update_time = [start_time]
                     await client.send_video(
