@@ -6,13 +6,29 @@ from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from pyrogram.handlers import MessageHandler
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
+
+# Configure logging
+import logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 async def check_spelling(word):
     url = f"https://abirthetech.serv00.net/spl.php?prompt={word}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            result = await response.json()
-            return result['response'].strip()
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                response.raise_for_status()  # Raise an exception for non-200 status codes
+                result = await response.json()
+                if 'response' not in result:
+                    raise ValueError("Invalid API response: 'response' key missing")
+                return result['response'].strip()
+    except Exception as e:
+        logger.error(f"Spelling check API error for word '{word}': {e}")
+        raise
 
 async def spell_check(client: Client, message: Message):
     # Check if the message is a reply
@@ -44,11 +60,21 @@ async def spell_check(client: Client, message: Message):
         "**Checking Spelling Please Wait...✨**",
         parse_mode=ParseMode.MARKDOWN
     )
-    corrected_word = await check_spelling(user_input)
-    await checking_message.edit(
-        text=f"`{corrected_word}`",
-        parse_mode=ParseMode.MARKDOWN
-    )
+    try:
+        corrected_word = await check_spelling(user_input)
+        await checking_message.edit(
+            text=f"`{corrected_word}`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"Error processing spelling check for word '{user_input}': {e}")
+        # Notify admins
+        await notify_admin(client, f"{COMMAND_PREFIX}spell", e, message)
+        # Send user-facing error message
+        await checking_message.edit(
+            text="**❌ Sorry, Spelling Check API Failed**",
+            parse_mode=ParseMode.MARKDOWN
+        )
 
 def setup_spl_handler(app: Client):
     app.add_handler(
