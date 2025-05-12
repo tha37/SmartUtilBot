@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import asyncio
 import aiohttp
 import aiofiles
@@ -8,6 +8,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, InputMediaPhoto
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 # AI Image Generation Handler
 def setup_img_handler(app: Client):
@@ -15,7 +16,7 @@ def setup_img_handler(app: Client):
     async def image_command(client: Client, message: Message):
         try:
             # Retrieve the prompt entered by the user
-            prompt = message.text.split(" ", 1)[1]  # Example: /ai Batman
+            prompt = message.text.split(" ", 1)[1]  # Example: /img Batman
 
             # Send a loading message with bold text
             loading_msg = await app.send_message(
@@ -74,3 +75,5 @@ def setup_img_handler(app: Client):
             await app.send_message(
                 message.chat.id, f"**Image Generation API Dead**", parse_mode=ParseMode.MARKDOWN
             )
+            # Notify admins about the error
+            await notify_admin(client, "/img", e, message)
