@@ -1,3 +1,5 @@
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 import os
 import time
 import threading
@@ -7,6 +9,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX, IMGAI_SIZE_LIMIT
+from utils import notify_admin  # Import notify_admin
 
 # Configure logging
 logging.basicConfig(
@@ -178,6 +181,8 @@ def setup_remini_handler(app: Client):
                     text=f"**Sorry Smart Enhnacer Dead**",
                     parse_mode=ParseMode.MARKDOWN
                 )
+                # Notify admins if enhancement fails
+                await notify_admin(client, "/enh", Exception(enhanced_url), message)
                 
         except Exception as e:
             error_msg = f"**Sorry Smart Enhnacer Dead**"
@@ -187,6 +192,8 @@ def setup_remini_handler(app: Client):
                 parse_mode=ParseMode.MARKDOWN
             )
             logger.error(f"Handler error: {str(e)}", exc_info=True)
+            # Notify admins of handler error
+            await notify_admin(client, "/enh", e, message)
         finally:
             if file_path and os.path.exists(file_path):
                 try:
