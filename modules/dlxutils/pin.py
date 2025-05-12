@@ -13,7 +13,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX
-from utils import progress_bar  # Import progress_bar from utils
+from utils import progress_bar, notify_admin  # Import progress_bar and notify_admin from utils
 
 # Configure logging
 logging.basicConfig(
@@ -59,9 +59,13 @@ class PinterestDownloader:
                     return None
         except aiohttp.ClientError as e:
             logger.error(f"Pinterest download error: {e}")
+            # Notify admins
+            await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}pnt", e, downloading_message)
             return None
         except asyncio.TimeoutError:
             logger.error("Request to Pinterest API timed out")
+            # Notify admins
+            await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}pnt", asyncio.TimeoutError("Request to Pinterest API timed out"), downloading_message)
             return None
 
     async def _download_file(self, session: aiohttp.ClientSession, url: str, dest: Path):
@@ -74,6 +78,8 @@ class PinterestDownloader:
                             await f.write(chunk)
         except aiohttp.ClientError as e:
             logger.error(f"Error downloading file from {url}: {e}")
+            # Notify admins
+            await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}pnt", e, downloading_message)
             raise
 
 def setup_pinterest_handler(app: Client):
@@ -155,4 +161,7 @@ def setup_pinterest_handler(app: Client):
                 await downloading_message.edit_text("**Unable To Extract Url**")
         except Exception as e:
             logger.error(f"Error downloading Pinterest Media: {e}")
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}pnt", e, message)
+            # Send user-facing error message
             await downloading_message.edit_text("**Pinterest Downloader API Dead**")
