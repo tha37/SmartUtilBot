@@ -20,17 +20,18 @@ from concurrent.futures import ThreadPoolExecutor
 from moviepy import VideoFileClip
 import yt_dlp
 from config import COMMAND_PREFIX, YT_COOKIES_PATH, VIDEO_RESOLUTION, MAX_VIDEO_SIZE
+from utils import progress_bar  # Import progress_bar from utils
 
 # Logging Setup
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
 # Headers Configuration
 class Config:
-    TEMP_DIR = Path("temp_media")
+    TEMP_DIR = Path("temp")
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/91.0.4472.124',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -65,35 +66,6 @@ async def get_video_duration(video_path: str) -> float:
     except Exception as e:
         logger.error(f"Failed to get duration for {video_path}: {e}")
         return 0.0
-
-async def progress_bar(current, total, status_message, start_time, last_update_time):
-    """
-    Display a progress bar for uploads.
-    """
-    elapsed_time = time.time() - start_time
-    percentage = (current / total) * 100
-    progress = "▓" * int(percentage // 5) + "░" * (20 - int(percentage // 5))
-    speed = current / elapsed_time / 1024 / 1024  # Speed in MB/s
-    uploaded = current / 1024 / 1024  # Uploaded size in MB
-    total_size = total / 1024 / 1024  # Total size in MB
-
-    # Throttle updates: Only update if at least 2 seconds have passed
-    if time.time() - last_update_time[0] < 2:
-        return
-    last_update_time[0] = time.time()
-
-    text = (
-        f"**📥Upload Progress 📥**\n\n"
-        f"{progress}\n\n"
-        f"**🚧 PC:** {percentage:.2f}%\n"
-        f"**⚡️ Speed:** {speed:.2f} MB/s\n"
-        f"**📶 Uploaded:** {uploaded:.2f} MB of {total_size:.2f} MB"
-    )
-    try:
-        await status_message.edit(text)
-        logger.info(f"Progress updated: {percentage:.2f}% for upload")
-    except Exception as e:
-        logger.error(f"Error updating progress: {e}")
 
 def youtube_parser(url: str) -> Optional[str]:
     """
@@ -135,7 +107,7 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
     # Parse and validate URL
     parsed_url = youtube_parser(url)
     if not parsed_url:
-        await status.edit_text("**Invalid YouTube ID Or URL**")
+        await status.edit_text("**Invalid YouTube ID Or URL**", parse_mode=ParseMode.MARKDOWN)
         logger.error(f"Invalid YouTube URL provided: {url}")
         return None, "Invalid YouTube URL"
     
@@ -148,19 +120,19 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
             )
         
         if not info:
-            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**")
+            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**", parse_mode=ParseMode.MARKDOWN)
             logger.error(f"No media info found for URL: {parsed_url}")
             return None, "No media info found"
         
         # Check duration (2 hours = 7200 seconds)
         duration = info.get('duration', 0)
         if duration > 7200:
-            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Is Over 2hrs**")
-            logger.error(f"Media duration exceeds modifies 2 hours: {duration} seconds")
+            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Is Over 2hrs**", parse_mode=ParseMode.MARKDOWN)
+            logger.error(f"Media duration exceeds 2 hours: {duration} seconds")
             return None, "Media duration exceeds 2 hours"
         
         # Instantly edit status to "Found" after metadata is fetched
-        await status.edit_text("**Found ☑️ Downloading...**")
+        await status.edit_text("**Found ☑️ Downloading...**", parse_mode=ParseMode.MARKDOWN)
         logger.info(f"Media found: {info.get('title', 'Unknown')} ({'audio' if is_audio else 'video'})")
         
         title = info.get('title', 'Unknown')
@@ -173,7 +145,7 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
         
         file_path = f"{output_path}.mp3" if is_audio else f"{output_path}.mp4"
         if not os.path.exists(file_path):
-            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**")
+            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**", parse_mode=ParseMode.MARKDOWN)
             logger.error(f"Download failed, file not found: {file_path}")
             return None, "Download failed"
         
@@ -181,7 +153,7 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
         file_size = os.path.getsize(file_path)
         if file_size > MAX_VIDEO_SIZE:
             os.remove(file_path)
-            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Is Over 2GB**")
+            await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Is Over 2GB**", parse_mode=ParseMode.MARKDOWN)
             logger.error(f"File size exceeds 2GB: {file_size} bytes")
             return None, "File exceeds 2GB"
         
@@ -201,11 +173,11 @@ async def download_media(url: str, is_audio: bool, status: Message) -> Tuple[Opt
         return metadata, None
     except asyncio.TimeoutError:
         logger.error(f"Timeout fetching metadata for URL: {url}")
-        await status.edit_text("**Sorry Bro YouTubeDL API Dead**")
+        await status.edit_text("**Sorry Bro YouTubeDL API Dead**", parse_mode=ParseMode.MARKDOWN)
         return None, "Metadata fetch timed out"
     except Exception as e:
         logger.error(f"Download error for URL {url}: {e}")
-        await status.edit_text("**Sorry Bro YouTubeDL API Dead**")
+        await status.edit_text("**Sorry Bro YouTubeDL API Dead**", parse_mode=ParseMode.MARKDOWN)
         return None, f"Download failed: {str(e)}"
 
 async def prepare_thumbnail(thumbnail_url: str, output_path: str) -> Optional[str]:
@@ -272,7 +244,7 @@ async def handle_media_request(client: Client, message: Message, query: str, is_
     # Check if query is a URL
     video_url = youtube_parser(query) if youtube_parser(query) else await search_youtube(query)
     if not video_url:
-        await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**")
+        await status.edit_text(f"**Sorry Bro {'Audio' if is_audio else 'Video'} Not Found**", parse_mode=ParseMode.MARKDOWN)
         logger.error(f"No video URL found for query: {query}")
         return
     
@@ -322,7 +294,7 @@ async def handle_media_request(client: Client, message: Message, query: str, is_
         logger.info(f"Media uploaded successfully: {'audio' if is_audio else 'video'}, file: {result['file_path']}")
     except Exception as e:
         logger.error(f"Upload error: {e}")
-        await status.edit_text("**Sorry Bro YouTubeDL API Dead**")
+        await status.edit_text("**Sorry Bro YouTubeDL API Dead**", parse_mode=ParseMode.MARKDOWN)
         return
     
     for path in (result['file_path'], result['thumbnail_path']):
@@ -335,7 +307,7 @@ async def handle_media_request(client: Client, message: Message, query: str, is_
 def setup_yt_handler(app: Client):
     prefix = f"[{''.join(map(re.escape, COMMAND_PREFIX))}]"
     
-    @app.on_message(filters.regex(rf"^{prefix}(yt|video)(\s+.+)?$"))
+    @app.on_message(filters.regex(rf"^{prefix}(yt|video)(\s+.+)?$") & (filters.private | filters.group))
     async def video_command(client, message):
         user_id = message.from_user.id if message.from_user else "unknown"
         chat_id = message.chat.id
@@ -361,7 +333,7 @@ def setup_yt_handler(app: Client):
         
         await handle_media_request(client, message, query)
     
-    @app.on_message(filters.regex(rf"^{prefix}song(\s+.+)?$"))
+    @app.on_message(filters.regex(rf"^{prefix}song(\s+.+)?$") & (filters.private | filters.group))
     async def song_command(client, message):
         user_id = message.from_user.id if message.from_user else "unknown"
         chat_id = message.chat.id
