@@ -8,6 +8,7 @@ import logging
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from config import COMMAND_PREFIX, PROXY_CHECK_LIMIT
+from utils import notify_admin  # Import notify_admin
 
 # Timeouts
 PROXY_TIMEOUT = 10
@@ -170,6 +171,8 @@ def setup_px_handler(app):
         except Exception as e:
             logging.error(f"Error during proxy check: {e}")
             await processing_msg.edit_text("<b>Sorry Bro Proxy Checker API Dead</b>")
+            # Notify admins of proxy check error
+            await notify_admin(client, "/px", e, message)
 
 
 async def send_results(client, original_msg, processing_msg, results):
