@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import aiohttp
 import asyncio
 import logging
@@ -7,6 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX, DOMAIN_API_KEY, DOMAIN_API_URL, DOMAIN_CHK_LIMIT
+from utils import notify_admin  # Import notify_admin from utils
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,34 +27,38 @@ async def get_domain_info(domain: str) -> str:
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(DOMAIN_API_URL, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    logger.info(f"Response for domain {domain}: {data}")  # Log the response data
-                    if data.get("WhoisRecord"):
-                        whois_record = data["WhoisRecord"]
-                        status = whois_record.get("status", "Unknown").lower()
-                        data_error = whois_record.get("dataError", "")
-                        registrar = whois_record.get("registrarName", "Unknown")
-                        registration_date = await format_date(whois_record.get("createdDate", "Unknown"))
-                        expiration_date = await format_date(whois_record.get("expiresDate", "Unknown"))
+                response.raise_for_status()  # Raise an exception for non-200 status codes
+                data = await response.json()
+                logger.info(f"Response for domain {domain}: {data}")  # Log the response data
+                if data.get("WhoisRecord"):
+                    whois_record = data["WhoisRecord"]
+                    status = whois_record.get("status", "Unknown").lower()
+                    data_error = whois_record.get("dataError", "")
+                    registrar = whois_record.get("registrarName", "Unknown")
+                    registration_date = await format_date(whois_record.get("createdDate", "Unknown"))
+                    expiration_date = await format_date(whois_record.get("expiresDate", "Unknown"))
 
-                        if status == "available" or data_error == "MISSING_WHOIS_DATA" or not whois_record.get("registryData"):
-                            return f"**✅ {domain}**: Available for registration!"
-                        else:
-                            return (
-                                f"**🔒 {domain}**: Already registered.\n"
-                                f"**Registrar:** `{registrar}`\n"
-                                f"**Registration Date:** `{registration_date}`\n"
-                                f"**Expiration Date:** `{expiration_date}`"
-                            )
-                    else:
+                    if status == "available" or data_error == "MISSING_WHOIS_DATA" or not whois_record.get("registryData"):
                         return f"**✅ {domain}**: Available for registration!"
+                    else:
+                        return (
+                            f"**🔒 {domain}**: Already registered.\n"
+                            f"**Registrar:** `{registrar}`\n"
+                            f"**Registration Date:** `{registration_date}`\n"
+                            f"**Expiration Date:** `{expiration_date}`"
+                        )
                 else:
-                    logger.error(f"Failed to fetch info for domain {domain}: HTTP {response.status}")
-                    return f"**Sorry Bro Domain API Dead**"
+                    return f"**✅ {domain}**: Available for registration!"
+    except aiohttp.ClientError as e:
+        logger.error(f"Failed to fetch info for domain {domain}: {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}dmn", e, None)
+        return f"**❌ Sorry Bro Domain API Dead**"
     except Exception as e:
-        logger.exception(f"Exception occurred while fetching info for domain {domain}")
-        return f"**❌Sorry Bro Domain Check API Dead**"
+        logger.error(f"Exception occurred while fetching info for domain {domain}: {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}dmn", e, None)
+        return f"**❌ Sorry Bro Domain Check API Dead**"
 
 async def domain_info_handler(client: Client, message: Message):
     if len(message.command) < 2:
@@ -79,27 +84,48 @@ async def domain_info_handler(client: Client, message: Message):
         parse_mode=ParseMode.MARKDOWN
     )
 
-    results = await asyncio.gather(*[get_domain_info(domain) for domain in domains])
+    try:
+        results = await asyncio.gather(*[get_domain_info(domain) for domain in domains], return_exceptions=True)
 
-    # Combine all results into a single message
-    result_message = "\n\n".join(results)
+        # Combine all results into a single message
+        result_message = []
+        for domain, result in zip(domains, results):
+            if isinstance(result, Exception):
+                logger.error(f"Error processing domain {domain}: {result}")
+                # Notify admins
+                await notify_admin(client, f"{COMMAND_PREFIX}dmn", result, message)
+                result_message.append(f"**❌ {domain}**: Failed to check domain")
+            else:
+                result_message.append(result)
 
-    # Check if all domains are available for registration
-    if all("✅" in result for result in results):
-        await progress_message.edit_text(result_message, parse_mode=ParseMode.MARKDOWN)
-        return
+        result_message = "\n\n".join(result_message)
 
-    if message.from_user:
-        user_full_name = f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
-        user_info = f"\n**Domain Info Grab By:** [{user_full_name}](tg://user?id={message.from_user.id})"
-    else:
-        group_name = message.chat.title or "this group"
-        group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
-        user_info = f"\n**Domain Info Grab By:** [{group_name}]({group_url})"
+        # Check if all domains are available for registration
+        if all("✅" in result for result in result_message.split("\n\n")):
+            await progress_message.edit_text(result_message, parse_mode=ParseMode.MARKDOWN)
+            return
 
-    result_message += user_info
+        if message.from_user:
+            user_full_name = f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
+            user_info = f"\n**Domain Info Grab By:** [{user_full_name}](tg://user?id={message.from_user.id})"
+        else:
+            group_name = message.chat.title or "this group"
+            group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
+            user_info = f"\n**Domain Info Grab By:** [{group_name}]({group_url})"
 
-    await progress_message.edit_text(f"**Domain Check Results:**\n\n{result_message}", parse_mode=ParseMode.MARKDOWN)
+        result_message += user_info
+
+        await progress_message.edit_text(f"**Domain Check Results:**\n\n{result_message}", parse_mode=ParseMode.MARKDOWN)
+
+    except Exception as e:
+        logger.error(f"Error processing domain check: {e}")
+        # Notify admins
+        await notify_admin(client, f"{COMMAND_PREFIX}dmn", e, message)
+        # Send user-facing error message
+        await progress_message.edit_text(
+            "**❌ Sorry Bro Domain Check API Dead**",
+            parse_mode=ParseMode.MARKDOWN
+        )
 
 def setup_dmn_handlers(app: Client):
     @app.on_message(filters.command(["dmn", ".dmn"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
