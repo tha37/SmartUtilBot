@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import logging
 import time
@@ -13,7 +13,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX  # Import COMMAND_PREFIX from config
-from utils import progress_bar  # Import progress_bar from utils
+from utils import progress_bar, notify_admin  # Import progress_bar and notify_admin from utils
 
 # Configure logging
 logging.basicConfig(
@@ -58,6 +58,8 @@ class FacebookDownloader:
                     return None
         except Exception as e:
             logger.error(f"Facebook download error: {e}")
+            # Notify admins
+            await notify_admin(downloading_message._client, f"{COMMAND_PREFIX}fb", e, downloading_message)
             return None
 
     async def _download_file(self, session, url, dest):
@@ -139,4 +141,7 @@ def setup_fb_handlers(app: Client):
                 await downloading_message.edit_text("**Invalid Video URL Or Video Private**")
         except Exception as e:
             logger.error(f"Error downloading Facebook video: {e}")
+            # Notify admins
+            await notify_admin(client, f"{COMMAND_PREFIX}fb", e, message)
+            # Send user-facing error message
             await downloading_message.edit_text("**Facebook Downloader API Dead**")
