@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import io
 import logging
@@ -9,6 +9,7 @@ from PIL import Image
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from config import COMMAND_PREFIX, IMGAI_SIZE_LIMIT, TEXT_API_URL, IMAGE_API_URL
+from utils import notify_admin  # Import notify_admin from utils
 
 # Configure logging
 logging.basicConfig(
@@ -18,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def setup_gem_handler(app: Client):
-    @app.on_message(filters.command(["gem","gemi","gemini"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
+    @app.on_message(filters.command(["gem", "gemi", "gemini"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
     async def gemi_handler(client: Client, message: Message):
         try:
             loading_message = await client.send_message(message.chat.id, "**🔍GeminiAI is thinking, Please Wait✨**")
@@ -56,6 +57,8 @@ def setup_gem_handler(app: Client):
         except Exception as e:
             logger.error(f"Gemini error: {str(e)}")
             await client.send_message(message.chat.id, "**❌Sorry Bro Gemini API Dead**")
+            # Notify admins about the error
+            await notify_admin(client, "/gem", e, message)
 
     @app.on_message(filters.command(["imgai"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
     async def imgai_handler(client: Client, message: Message):
@@ -116,8 +119,12 @@ def setup_gem_handler(app: Client):
 
             except requests.exceptions.Timeout:
                 await processing_msg.edit("**❌ Sorry Bro ImageAI API Dead**")
+                # Notify admins about the error
+                await notify_admin(client, "/imgai", Exception("Timeout error"), message)
             except Exception as e:
                 await processing_msg.edit(f"**❌ Sorry Bro ImageAI API Dead**")
+                # Notify admins about the error
+                await notify_admin(client, "/imgai", e, message)
             finally:
                 if os.path.exists(photo_path):
                     os.remove(photo_path)
@@ -125,3 +132,5 @@ def setup_gem_handler(app: Client):
         except Exception as e:
             logger.error(f"Image analysis error: {str(e)}")
             await client.send_message(message.chat.id, "**❌ Sorry Bro ImageAI API Dead**")
+            # Notify admins about the error
+            await notify_admin(client, "/imgai", e, message)
