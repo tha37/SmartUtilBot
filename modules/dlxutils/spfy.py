@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import logging
 import time
@@ -15,7 +15,7 @@ from pyrogram.enums import ParseMode
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from typing import Optional
 from config import COMMAND_PREFIX
-from utils import progress_bar  # Import progress_bar from utils
+from utils import progress_bar, notify_admin  # Import progress_bar and notify_admin from utils
 import urllib.parse
 
 # Configure logging
@@ -52,8 +52,12 @@ async def download_image(url: str, output_path: str) -> Optional[str]:
             return output_path
         else:
             logger.error(f"Failed to download image: HTTP status {response.status_code}")
+            # Notify admins
+            await notify_admin(None, f"{COMMAND_PREFIX}sp", Exception(f"Failed to download image: HTTP status {response.status_code}"), None)
     except Exception as e:
         logger.error(f"Failed to download image: {e}")
+        # Notify admins
+        await notify_admin(None, f"{COMMAND_PREFIX}sp", e, None)
     return None
 
 async def handle_spotify_request(client: Client, message: Message, input_text: Optional[str]):
@@ -95,6 +99,8 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
                             return
                     else:
                         await status_message.edit_text("**❌ Song Not Available On Spotify**", parse_mode=ParseMode.MARKDOWN)
+                        # Notify admins
+                        await notify_admin(client, f"{COMMAND_PREFIX}sp", Exception(f"API request failed: HTTP status {response.status}"), message)
                         return
             else:
                 # Handle search query
@@ -119,15 +125,21 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
                                     logger.info(f"Track API response: {data}")
                                     if not data["status"]:
                                         await status_message.edit_text("**Song Metadata Unavailable**", parse_mode=ParseMode.MARKDOWN)
+                                        # Notify admins
+                                        await notify_admin(client, f"{COMMAND_PREFIX}sp", Exception("Song metadata unavailable"), message)
                                         return
                                 else:
                                     await status_message.edit_text("**❌ Song Unavailable Bro Try Later**", parse_mode=ParseMode.MARKDOWN)
+                                    # Notify admins
+                                    await notify_admin(client, f"{COMMAND_PREFIX}sp", Exception(f"Track API request failed: HTTP status {track_response.status}"), message)
                                     return
                         else:
                             await status_message.edit_text("**Sorry No Songs Matched To Your Search!**", parse_mode=ParseMode.MARKDOWN)
                             return
                     else:
                         await status_message.edit_text("**❌ Sorry Bro Spotify Search API Dead**", parse_mode=ParseMode.MARKDOWN)
+                        # Notify admins
+                        await notify_admin(client, f"{COMMAND_PREFIX}sp", Exception(f"Search API request failed: HTTP status {response.status}"), message)
                         return
 
             # Extract track details from API response
@@ -163,6 +175,8 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
                     logger.info(f"Audio file downloaded successfully to {output_filename}")
                 else:
                     await status_message.edit_text("**❌ Sorry Bro Spotify DL API Dead**", parse_mode=ParseMode.MARKDOWN)
+                    # Notify admins
+                    await notify_admin(client, f"{COMMAND_PREFIX}sp", Exception(f"Audio download failed: HTTP status {response.status}"), message)
                     return
 
             # Prepare user info for caption
@@ -217,6 +231,8 @@ async def handle_spotify_request(client: Client, message: Message, input_text: O
     except Exception as e:
         await status_message.edit_text("**❌ Sorry Bro Spotify DL API Dead**", parse_mode=ParseMode.MARKDOWN)
         logger.error(f"Error processing Spotify request: {e}")
+        # Notify admins
+        await notify_admin(client, f"{COMMAND_PREFIX}sp", e, message)
 
 def setup_spotify_handler(app: Client):
     # Create a regex pattern from the COMMAND_PREFIX list
