@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 # Note This Script Based On https://github.com/abirxdhack/Binance-P2P 
 import aiohttp
 import asyncio
@@ -11,6 +11,7 @@ from pyrogram.enums import ParseMode
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from config import COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 # Binance API URL and headers
 url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
@@ -24,7 +25,7 @@ headers = {
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def fetch_page(session, asset, fiat, trade_type, pay_type, page, rows=20):
+async def fetch_page(session, asset, fiat, trade_type, pay_type, page, rows=20, client=None, message=None):
     payload = {
         "asset": asset,
         "fiat": fiat,
@@ -38,16 +39,18 @@ async def fetch_page(session, asset, fiat, trade_type, pay_type, page, rows=20):
         async with session.post(url, headers=headers, json=payload) as response:
             if response.status != 200:
                 logger.error(f"Error fetching page {page}: {response.status}")
-                return []
+                raise Exception(f"API request failed with status {response.status}")
             data = await response.json()
             return data['data']
     except Exception as e:
         logger.error(f"Exception occurred while fetching page {page}: {e}")
+        if client and message:
+            await notify_admin(client, "/p2p", e, message)
         return []
 
-async def fetch_sellers(asset, fiat, trade_type, pay_type):
+async def fetch_sellers(asset, fiat, trade_type, pay_type, client=None, message=None):
     async with aiohttp.ClientSession() as session:
-        tasks = [fetch_page(session, asset, fiat, trade_type, pay_type, page) for page in range(1, 8)]  # Fetch first 7 pages
+        tasks = [fetch_page(session, asset, fiat, trade_type, pay_type, page, client=client, message=message) for page in range(1, 8)]  # Fetch first 7 pages
         results = await asyncio.gather(*tasks)
         all_sellers = [seller for result in results for seller in result if result]
         return all_sellers[:131]
@@ -71,7 +74,7 @@ def process_sellers_to_json(sellers):
 
     return processed
 
-def save_to_json_file(data, filename):
+def save_to_json_file(data, filename, client=None, message=None):
     try:
         os.makedirs('data', exist_ok=True)
         path = os.path.join('data', filename)
@@ -83,18 +86,23 @@ def save_to_json_file(data, filename):
         asyncio.create_task(delete_file_after_delay(path, 10*60))
     except Exception as e:
         logger.error(f"Error saving to {filename}: {e}")
+        if client and message:
+            asyncio.create_task(notify_admin(client, "/p2p", e, message))
+        raise  # Re-raise to inform caller
 
-def load_from_json_file(filename):
+def load_from_json_file(filename, client=None, message=None):
     try:
         path = os.path.join('data', filename)
         if not os.path.exists(path):
             logger.error(f"File not found: {path}")
-            return []
+            raise Exception("File not found")
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         logger.error(f"Error loading from {filename}: {e}")
-        return []
+        if client and message:
+            asyncio.create_task(notify_admin(client, "/p2p", e, message))
+        raise  # Re-raise to inform caller
 
 async def delete_file_after_delay(file_path, delay):
     await asyncio.sleep(delay)
@@ -144,13 +152,13 @@ async def p2p_handler(client, message):
 
         loading_message = await client.send_message(message.chat.id, "**🔄 Fetching All P2P Trades**", parse_mode=ParseMode.MARKDOWN)
 
-        sellers = await fetch_sellers(asset, fiat, trade_type, pay_type)
+        sellers = await fetch_sellers(asset, fiat, trade_type, pay_type, client=client, message=message)
         if not sellers:
-            await client.edit_message_text(message.chat.id, loading_message.id, "❌ No sellers found for the specified currency.", parse_mode=ParseMode.MARKDOWN)
+            await client.edit_message_text(message.chat.id, loading_message.id, "**❌ No sellers found or API error occurred**", parse_mode=ParseMode.MARKDOWN)
             return
 
         processed_sellers = process_sellers_to_json(sellers)
-        save_to_json_file(processed_sellers, filename)
+        save_to_json_file(processed_sellers, filename, client=client, message=message)
         message_text = generate_message(processed_sellers, 1)
 
         keyboard = InlineKeyboardMarkup([
@@ -160,13 +168,15 @@ async def p2p_handler(client, message):
         await client.edit_message_text(message.chat.id, loading_message.id, message_text, reply_markup=keyboard, parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
         logger.error(f"Exception in p2p_handler: {e}")
+        await client.edit_message_text(message.chat.id, loading_message.id, "**Sorry, an error occurred while fetching P2P data ❌**", parse_mode=ParseMode.MARKDOWN)
+        await notify_admin(client, "/p2p", e, message)
 
 async def next_page(client, callback_query):
     try:
         current_page = int(callback_query.data.split('_', 2)[1])
         filename = callback_query.data.split('_', 2)[2]
 
-        sellers = load_from_json_file(filename)
+        sellers = load_from_json_file(filename, client=client, message=callback_query.message)
 
         next_page = current_page + 1
         if (next_page - 1) * 5 >= len(sellers):
@@ -182,13 +192,15 @@ async def next_page(client, callback_query):
         await callback_query.answer()
     except Exception as e:
         logger.error(f"Exception in next_page: {e}")
+        await callback_query.message.edit_text("**Sorry, an error occurred while fetching data ❌**", parse_mode=ParseMode.MARKDOWN)
+        await notify_admin(client, "/p2p", e, callback_query.message)
 
 async def prev_page(client, callback_query):
     try:
         current_page = int(callback_query.data.split('_', 2)[1])
         filename = callback_query.data.split('_', 2)[2]
 
-        sellers = load_from_json_file(filename)
+        sellers = load_from_json_file(filename, client=client, message=callback_query.message)
 
         prev_page = current_page - 1
         if prev_page < 1:
@@ -204,9 +216,10 @@ async def prev_page(client, callback_query):
         await callback_query.answer()
     except Exception as e:
         logger.error(f"Exception in prev_page: {e}")
+        await callback_query.message.edit_text("**Sorry, an error occurred while fetching data ❌**", parse_mode=ParseMode.MARKDOWN)
+        await notify_admin(client, "/p2p", e, callback_query.message)
 
 def setup_p2p_handler(app: Client):
     app.add_handler(MessageHandler(p2p_handler, (filters.private | filters.group) & filters.command("p2p", prefixes=COMMAND_PREFIX)))
     app.add_handler(CallbackQueryHandler(next_page, filters.regex(r"nextone_\d+_(.+\.json)")))
     app.add_handler(CallbackQueryHandler(prev_page, filters.regex(r"prevone_\d+_(.+\.json)")))
-
