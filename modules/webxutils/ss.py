@@ -9,6 +9,15 @@ from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX
 from urllib.parse import quote
+from utils import notify_admin  # Import notify_admin
+import logging
+
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 # Webss API endpoint
 WEBSS_API_URL = "https://webss.yasirapi.eu.org/api"
@@ -52,6 +61,7 @@ async def try_different_url_formats(base_url: str, api_base_url: str):
             response = await fetch_screenshot(api_url, retries=1)  # Only try once per format
             return response, url
         except Exception as e:
+            logger.error(f"Failed to fetch screenshot for {url}: {e}")
             continue
     
     # If all formats failed
@@ -83,10 +93,14 @@ async def fetch_screenshot(api_url: str, retries: int = 3, timeout: int = 15):
                 wait_time = min(5, 2 * (attempt + 1))  # Exponential backoff with max 5s
                 await asyncio.sleep(wait_time)
                 continue
+            logger.error(f"Failed to fetch screenshot after {retries} attempts: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in fetch_screenshot: {e}")
             raise
 
 def setup_ss_handler(app):
-    @app.on_message(filters.command(["ss","sshot","screenshot","snap"], prefixes=COMMAND_PREFIX) & 
+    @app.on_message(filters.command(["ss", "sshot", "screenshot", "snap"], prefixes=COMMAND_PREFIX) & 
                    (filters.private | filters.group))
     async def capture_screenshot(client, message: Message):
         """Handle screenshot capture command"""
@@ -150,7 +164,7 @@ def setup_ss_handler(app):
                 chat_id=message.chat.id,
                 photo=temp_file,
                 caption=f"**🌐 Screenshot of:** `{successful_url}`\n"
-                         f"⏱ Captured in {elapsed:.1f}s | 📦 Size: {file_size/1024:.1f}KB",
+                        f"⏱ Captured in {elapsed:.1f}s | 📦 Size: {file_size/1024:.1f}KB",
                 parse_mode=ParseMode.MARKDOWN
             )
             
@@ -162,16 +176,23 @@ def setup_ss_handler(app):
 
         except Exception as e:
             # For ANY error, edit the message to "Sorry Bro API Dead"
+            error_msg = "**Sorry Bro SS Capture API Dead**"
             try:
                 await client.edit_message_text(
                     chat_id=processing_msg.chat.id,
                     message_id=processing_msg.id,
-                    text="**Sorry Bro SS Capture API Dead**",
+                    text=error_msg,
                     parse_mode=ParseMode.MARKDOWN
                 )
-            except:
-                pass  # In case message edit fails
+            except Exception as edit_error:
+                logger.warning(f"Failed to edit processing message: {edit_error}")
+            logger.error(f"Error in capture_screenshot: {e}")
+            # Notify admins of error
+            await notify_admin(client, "/ss", e, message)
         finally:
             # Clean up in all cases
             if temp_file and os.path.exists(temp_file):
-                os.remove(temp_file)
+                try:
+                    os.remove(temp_file)
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to remove temp file: {cleanup_error}")
