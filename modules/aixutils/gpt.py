@@ -3,6 +3,7 @@ import logging
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from config import OPENAI_API_KEY, COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 # Setup logging for capturing errors (console output only)
 logging.basicConfig(
@@ -80,6 +81,10 @@ def setup_gpt_handlers(app: Client):
             else:
                 logger.error("Failed to fetch GPT response")
                 await loading_message.edit_text("**Sorry Chat Gpt 3.5 API Dead**", parse_mode=ParseMode.MARKDOWN)
+                # Notify admins about the error
+                await notify_admin(client, "/gpt", Exception("Failed to fetch GPT response"), message)
         except Exception as e:
             logger.error(f"Exception in gpt_handler: {str(e)}")
             await loading_message.edit_text("**Sorry Chat Gpt 3.5 API Dead**", parse_mode=ParseMode.MARKDOWN)
+            # Notify admins about the error
+            await notify_admin(client, "/gpt", e, message)
