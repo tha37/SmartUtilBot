@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
 import logging
 import aiohttp
@@ -8,6 +8,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import GROQ_API_KEY, GROQ_API_URL, TEXT_MODEL, COMMAND_PREFIX
+from utils import notify_admin  # Import notify_admin from utils
 
 # Logging Setup Error Capture
 logger = logging.getLogger(__name__)
@@ -66,6 +67,10 @@ def setup_dep_handler(app: Client):
         except aiohttp.ClientError as e:
             logger.error(f"HTTP error while calling Groq API: {e}")
             await temp_message.edit_text("**Sorry Bro DeepseekAI✨ API Dead**", parse_mode=ParseMode.MARKDOWN)
+            # Notify admins about the error
+            await notify_admin(client, "/dep", e, message)
         except Exception as e:
             logger.error(f"Error generating response: {e}")
             await temp_message.edit_text("**Sorry Bro DeepseekAI✨ API Dead**", parse_mode=ParseMode.MARKDOWN)
+            # Notify admins about the error
+            await notify_admin(client, "/dep", e, message)
