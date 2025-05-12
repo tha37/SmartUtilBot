@@ -10,6 +10,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import ParseMode
 from config import COMMAND_PREFIX, OCR_WORKER_URL, IMGAI_SIZE_LIMIT
+from utils import notify_admin  # Import notify_admin
 import logging
 
 # Initialize logger
@@ -60,6 +61,8 @@ async def ocr_handler(client: Client, message: Message):
                         text="<b>❌ Sorry Bro OCR API Dead</b>",
                         parse_mode=ParseMode.HTML
                     )
+                    # Notify admins of API error
+                    await notify_admin(client, "/ocr", Exception(f"API returned status {response.status}"), message)
                     return
                 
                 result = await response.json()
@@ -76,7 +79,7 @@ async def ocr_handler(client: Client, message: Message):
             disable_web_page_preview=True
         )
 
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as e:
         logger.error("TimeoutError: OCR API request timed out")
         await client.edit_message_text(
             chat_id=message.chat.id,
@@ -84,6 +87,8 @@ async def ocr_handler(client: Client, message: Message):
             text="<b>❌ Sorry Bro OCR API Dead</b>",
             parse_mode=ParseMode.HTML
         )
+        # Notify admins of timeout error
+        await notify_admin(client, "/ocr", e, message)
     except Exception as e:
         logger.error(f"OCR Error: {str(e)}")
         await client.edit_message_text(
@@ -92,6 +97,8 @@ async def ocr_handler(client: Client, message: Message):
             text="<b>❌ Sorry Bro OCR API Dead</b>",
             parse_mode=ParseMode.HTML
         )
+        # Notify admins of general error
+        await notify_admin(client, "/ocr", e, message)
     finally:
         # Cleanup
         if photo_path and os.path.exists(photo_path):
