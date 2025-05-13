@@ -102,7 +102,7 @@ def setup_donate_handler(app):
             return
 
         # Send loading message with back button
-        back_button = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="show_donate_options")]])
+        back_button = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="show_donate_options")]])
         loading_message = await client.send_message(
             chat_id,
             INVOICE_CREATION_TEXT.format(amount),
