@@ -1,20 +1,44 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import os
-import math
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.enums import ParseMode
 import logging
 from config import OWNER_IDS, COMMAND_PREFIX
+from telegraph import Telegraph
 
-# Set up logging
+# Setup LOGGER
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Initialize Telegraph client
+telegraph = Telegraph()
+telegraph.create_account(
+    short_name="SmartUtilBot",
+    author_name="SmartUtilBot",
+    author_url="https://t.me/TheSmartDevs"
+)
+
 def setup_logs_handler(app: Client):
     logger.info("Setting up logs handler")
+
+    async def create_telegraph_page(content: str) -> str:
+        """Create a Telegraph page with the given content, truncating to 40,000 characters"""
+        try:
+            # Truncate content to 40,000 characters to respect Telegraph limits
+            truncated_content = content[:40000]
+            response = telegraph.create_page(
+                title="SmartLogs",
+                html_content=f"<pre>{truncated_content}</pre>",
+                author_name="SmartUtilBot",
+                author_url="https://t.me/TheSmartDevs"
+            )
+            return f"https://telegra.ph/{response['path']}"
+        except Exception as e:
+            logger.error(f"Failed to create Telegraph page: {e}")
+            return None
 
     @app.on_message(filters.command(["logs"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
     async def logs_command(client, message):
@@ -42,7 +66,7 @@ def setup_logs_handler(app: Client):
         # Check if logs exist
         if not os.path.exists("botlog.txt"):
             await loading_message.edit_text(
-                text="**📜 No logs available yet.**",
+                text="**Sorry Bro No Logs Found**",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
@@ -56,22 +80,24 @@ def setup_logs_handler(app: Client):
 **✘ All Logs Database Succesfully Exported! ↯**
 **↯ Access Granted Only to Authorized Admins ↯**
 **✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
-**🖱️ Select an Option Below to View Logs:**
-**👁️‍🗨️ Logs Here Offer the Fastest and Clearest Access! ↯**
+**✘ Select an Option Below to View Logs:**
+**✘ Logs Here Offer the Fastest and Clearest Access! ↯**
 **✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
 **✘Huge Respect For You My Master↯**""",
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([ 
-                [InlineKeyboardButton("❄️ Display Logs", callback_data="display_logs&0"), 
-                 InlineKeyboardButton("🌐 Web Paste", callback_data="web_paste$")], 
-                [InlineKeyboardButton("❌ Close", callback_data="close_doc$")] 
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✘ Display Logs↯", callback_data="display_logs"),
+                    InlineKeyboardButton("✘ Web Paste↯", callback_data="web_paste$")
+                ],
+                [InlineKeyboardButton("✘ Close↯", callback_data="close_doc$")]
             ])
         )
 
         # Delete the temporary "Checking The Logs..." message
         await loading_message.delete()
 
-    @app.on_callback_query(filters.regex(r"^(close_doc\$|close_logs\$|web_paste\$|display_logs&(\d+)|nextLogs&(\d+)|previousLogs&(\d+))$"))
+    @app.on_callback_query(filters.regex(r"^(close_doc\$|close_logs\$|web_paste\$|display_logs)$"))
     async def handle_callback(client: Client, query: CallbackQuery):
         user_id = query.from_user.id
         data = query.data
@@ -79,7 +105,7 @@ def setup_logs_handler(app: Client):
         if user_id not in OWNER_IDS:
             logger.info("User not admin, sending callback answer")
             await query.answer(
-                text="🚫 This is only for admins!",
+                text="🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️",
                 show_alert=True
             )
             return
@@ -91,98 +117,87 @@ def setup_logs_handler(app: Client):
             await query.message.delete()
             await query.answer()
         elif data == "web_paste$":
-            await query.answer("Web Paste feature not implemented yet.")
-        elif data.startswith("display_logs&"):
-            page = int(data.split("&")[1])
-            await send_logs_page(client, query.message.chat.id, page)
-            await query.answer()
-        elif data.startswith("nextLogs&") or data.startswith("previousLogs&"):
-            page = int(data.split("&")[1])
-            await edit_logs_page(client, query.message, page)
+            await query.answer("Uploading logs to Telegraph...")
+            # Edit the main log message to show uploading status
+            await query.message.edit_caption(
+                caption="**✘Uploading SmartLogs To Telegraph↯**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            # Check if logs exist
+            if not os.path.exists("botlog.txt"):
+                await query.message.edit_caption(
+                    caption="**✘Sorry Bro Telegraph API Dead↯**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            try:
+                # Read and truncate logs
+                with open("botlog.txt", "r", encoding="utf-8") as f:
+                    logs_content = f.read()
+                # Create Telegraph page
+                telegraph_url = await create_telegraph_page(logs_content)
+                if telegraph_url:
+                    await query.message.edit_caption(
+                        caption="""**✘ Hey Sir! Here Is Your Order ↯**
+**✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
+**✘ All Logs Database Succesfully Exported! ↯**
+**↯ Access Granted Only to Authorized Admins ↯**
+**✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
+**✘ Select an Option Below to View Logs:**
+**✘ Logs Here Offer the Fastest and Clearest Access! ↯**
+**✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
+**✘Huge Respect For You My Master↯**""",
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("✘ View Web↯", url=telegraph_url)]
+                        ])
+                    )
+                else:
+                    await query.message.edit_caption(
+                        caption="**✘Sorry Bro Telegraph API Dead↯**",
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+            except Exception as e:
+                logger.error(f"Error uploading to Telegraph: {e}")
+                await query.message.edit_caption(
+                    caption="**✘Sorry Bro Telegraph API Dead↯**",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+        elif data == "display_logs":
+            await send_logs_page(client, query.message.chat.id)
             await query.answer()
 
-async def send_logs_page(client: Client, chat_id: int, page: int):
-    logger.info(f"Sending logs page {page} to chat {chat_id}")
-    if not os.path.exists("botlog.txt"):
-        await client.send_message(
-            chat_id=chat_id,
-            text="**📜 No logs available yet.**",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    with open("botlog.txt", "r", encoding="utf-8") as f:
-        logs = f.readlines()
-    total_lines = len(logs)
-    total_pages = math.ceil(total_lines / 28)
-    page = max(0, min(page, total_pages - 1))
-    start = page * 28
-    end = start + 28
-    page_lines = logs[start:end]
-    text = "".join(page_lines) if page_lines else "No logs available."
-    buttons = []
-    if total_lines <= 28:
-        buttons = [[InlineKeyboardButton("❌ Close", callback_data="close_logs$")]]
-    elif page == 0:
-        buttons = [
-            [InlineKeyboardButton("➡️ Next", callback_data=f"nextLogs&{page+1}"),
-             InlineKeyboardButton("❌ Close", callback_data="close_logs$")]
-        ]
-    elif page == total_pages - 1:
-        buttons = [
-            [InlineKeyboardButton("⬅️ Previous", callback_data=f"previousLogs&{page-1}"),
-             InlineKeyboardButton("❌ Close", callback_data="close_logs$")]
-        ]
-    else:
-        buttons = [
-            [InlineKeyboardButton("⬅️ Previous", callback_data=f"previousLogs&{page-1}"),
-             InlineKeyboardButton("➡️ Next", callback_data=f"nextLogs&{page+1}")],
-            [InlineKeyboardButton("❌ Close", callback_data="close_logs$")]
-        ]
-    await client.send_message(
-        chat_id=chat_id,
-        text=text,
-        parse_mode=ParseMode.DISABLED,
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
-
-async def edit_logs_page(client: Client, message, page: int):
-    logger.info(f"Editing logs page to {page}")
-    if not os.path.exists("botlog.txt"):
-        await message.edit_text(
-            text="**📜 No logs available yet.**",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
-    with open("botlog.txt", "r", encoding="utf-8") as f:
-        logs = f.readlines()
-    total_lines = len(logs)
-    total_pages = math.ceil(total_lines / 28)
-    page = max(0, min(page, total_pages - 1))
-    start = page * 28
-    end = start + 28
-    page_lines = logs[start:end]
-    text = "".join(page_lines) if page_lines else "No logs available."
-    buttons = []
-    if total_lines <= 28:
-        buttons = [[InlineKeyboardButton("❌ Close", callback_data="close_logs$")]]
-    elif page == 0:
-        buttons = [
-            [InlineKeyboardButton("➡️ Next", callback_data=f"nextLogs&{page+1}"),
-             InlineKeyboardButton("❌ Close", callback_data="close_logs$")]
-        ]
-    elif page == total_pages - 1:
-        buttons = [
-            [InlineKeyboardButton("⬅️ Previous", callback_data=f"previousLogs&{page-1}"),
-             InlineKeyboardButton("❌ Close", callback_data="close_logs$")]
-        ]
-    else:
-        buttons = [
-            [InlineKeyboardButton("⬅️ Previous", callback_data=f"previousLogs&{page-1}"),
-             InlineKeyboardButton("➡️ Next", callback_data=f"nextLogs&{page+1}")],
-            [InlineKeyboardButton("❌ Close", callback_data="close_logs$")]
-        ]
-    await message.edit_text(
-        text=text,
-        parse_mode=ParseMode.DISABLED,
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+    async def send_logs_page(client: Client, chat_id: int):
+        """Send the last 20 lines of botlog.txt, respecting Telegram's 4096-character limit"""
+        logger.info(f"Sending latest logs to chat {chat_id}")
+        if not os.path.exists("botlog.txt"):
+            await client.send_message(
+                chat_id=chat_id,
+                text="**✘Sorry Bro No Logs Found↯**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        try:
+            with open("botlog.txt", "r", encoding="utf-8") as f:
+                logs = f.readlines()
+            # Get the last 20 lines (or fewer if the file is shorter)
+            latest_logs = logs[-20:] if len(logs) > 20 else logs
+            text = "".join(latest_logs)
+            # Truncate to 4096 characters (Telegram's message limit)
+            if len(text) > 4096:
+                text = text[-4096:]
+            await client.send_message(
+                chat_id=chat_id,
+                text=text if text else "No logs available.",
+                parse_mode=ParseMode.DISABLED,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✘ Back↯", callback_data="close_logs$")]
+                ])
+            )
+        except Exception as e:
+            logger.error(f"Error sending logs: {e}")
+            await client.send_message(
+                chat_id=chat_id,
+                text="**✘Sorry There Was A Issue On My Server↯**",
+                parse_mode=ParseMode.MARKDOWN
+            )
