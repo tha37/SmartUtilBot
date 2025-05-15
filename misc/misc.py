@@ -98,8 +98,8 @@ async def handle_callback_query(client, callback_query):
     if call.data in responses:
         back_button = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="about_me")]]) if call.data == "server" else (
             InlineKeyboardMarkup([
-                [InlineKeyboardButton("💾 Server", callback_data="server"),
-                 InlineKeyboardButton("📊 Status", callback_data="stats"),
+                [InlineKeyboardButton("📊 Status", callback_data="stats"),
+                 InlineKeyboardButton("💾 Server", callback_data="server"),
                  InlineKeyboardButton("⭐️ Donate", callback_data="donate")],
                 [InlineKeyboardButton("⬅️ Back", callback_data="start_message")]
             ]) if call.data == "about_me" else (
