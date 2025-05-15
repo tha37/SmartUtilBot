@@ -5,6 +5,7 @@ aiohttp
 telethon
 asyncio
 pytz
+telegraph
 pycountry
 beautifulsoup4
 pillow
