@@ -24,21 +24,51 @@ telegraph.create_account(
 def setup_logs_handler(app: Client):
     logger.info("Setting up logs handler")
 
-    async def create_telegraph_page(content: str) -> str:
-        """Create a Telegraph page with the given content, truncating to 40,000 characters"""
+    async def create_telegraph_page(content: str) -> list:
+        """Create Telegraph pages with the given content, each under 20 KB, and return list of URLs"""
         try:
-            # Truncate content to 40,000 characters to respect Telegraph limits
+            # Truncate content to 40,000 characters to respect Telegraph character limits
             truncated_content = content[:40000]
-            response = telegraph.create_page(
-                title="SmartLogs",
-                html_content=f"<pre>{truncated_content}</pre>",
-                author_name="SmartUtilBot",
-                author_url="https://t.me/TheSmartDevs"
-            )
-            return f"https://telegra.ph/{response['path']}"
+            # Convert content to bytes to measure size accurately
+            content_bytes = truncated_content.encode('utf-8')
+            max_size_bytes = 20 * 1024  # 20 KB in bytes
+            pages = []
+            page_content = ""
+            current_size = 0
+            lines = truncated_content.splitlines(keepends=True)
+
+            for line in lines:
+                line_bytes = line.encode('utf-8')
+                # Check if adding this line would exceed 20 KB
+                if current_size + len(line_bytes) > max_size_bytes and page_content:
+                    # Create a Telegraph page with the current content
+                    response = telegraph.create_page(
+                        title="SmartLogs",
+                        html_content=f"<pre>{page_content}</pre>",
+                        author_name="SmartUtilBot",
+                        author_url="https://t.me/TheSmartDevs"
+                    )
+                    pages.append(f"https://telegra.ph/{response['path']}")
+                    # Reset for the next page
+                    page_content = ""
+                    current_size = 0
+                page_content += line
+                current_size += len(line_bytes)
+
+            # Create a page for any remaining content
+            if page_content:
+                response = telegraph.create_page(
+                    title="SmartLogs",
+                    html_content=f"<pre>{page_content}</pre>",
+                    author_name="SmartUtilBot",
+                    author_url="https://t.me/TheSmartDevs"
+                )
+                pages.append(f"https://telegra.ph/{response['path']}")
+
+            return pages
         except Exception as e:
             logger.error(f"Failed to create Telegraph page: {e}")
-            return None
+            return []
 
     @app.on_message(filters.command(["logs"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
     async def logs_command(client, message):
@@ -75,7 +105,7 @@ def setup_logs_handler(app: Client):
         await client.send_document(
             chat_id=message.chat.id,
             document="botlog.txt",
-            caption="""**✘ Hey Sir! Here Is Your Order ↯**
+            caption="""**✘ Hey Sir! Here Is Your Logs ↯**
 **✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
 **✘ All Logs Database Succesfully Exported! ↯**
 **↯ Access Granted Only to Authorized Admins ↯**
@@ -134,23 +164,32 @@ def setup_logs_handler(app: Client):
                 # Read and truncate logs
                 with open("botlog.txt", "r", encoding="utf-8") as f:
                     logs_content = f.read()
-                # Create Telegraph page
-                telegraph_url = await create_telegraph_page(logs_content)
-                if telegraph_url:
+                # Create Telegraph pages
+                telegraph_urls = await create_telegraph_page(logs_content)
+                if telegraph_urls:
+                    # Create buttons with two per row
+                    buttons = []
+                    for i in range(0, len(telegraph_urls), 2):
+                        row = [
+                            InlineKeyboardButton(f"✘ View Web Part {i+1}↯", url=telegraph_urls[i])
+                        ]
+                        if i + 1 < len(telegraph_urls):
+                            row.append(InlineKeyboardButton(f"✘ View Web Part {i+2}↯", url=telegraph_urls[i+1]))
+                        buttons.append(row)
+                    # Add a close button in its own row
+                    buttons.append([InlineKeyboardButton("✘ Close↯", callback_data="close_doc$")])
                     await query.message.edit_caption(
-                        caption="""**✘ Hey Sir! Here Is Your Order ↯**
+                        caption="""**✘ Hey Sir! Here Is Your Logs ↯**
 **✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
 **✘ All Logs Database Succesfully Exported! ↯**
 **↯ Access Granted Only to Authorized Admins ↯**
 **✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
-**✘ Select an Option Below to View Logs:**
+**✘ Select a Page Below to View Logs:**
 **✘ Logs Here Offer the Fastest and Clearest Access! ↯**
 **✘━━━━━━━━━━━━━━━━━━━━━━━━━↯**
 **✘Huge Respect For You My Master↯**""",
                         parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("✘ View Web↯", url=telegraph_url)]
-                        ])
+                        reply_markup=InlineKeyboardMarkup(buttons)
                     )
                 else:
                     await query.message.edit_caption(
