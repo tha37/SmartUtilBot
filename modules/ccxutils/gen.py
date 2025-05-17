@@ -1,7 +1,8 @@
 import re
 import os
 import random
-import requests
+import aiohttp
+import asyncio
 import pycountry
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
@@ -9,14 +10,15 @@ from pyrogram.enums import ParseMode
 from config import BIN_KEY, COMMAND_PREFIX, CC_GEN_LIMIT, MULTI_CCGEN_LIMIT
 from utils import notify_admin  # Import notify_admin from utils
 
-def get_bin_info(bin, client, message):
+async def get_bin_info(bin, client, message):
     headers = {'x-api-key': BIN_KEY}
     try:
-        response = requests.get(f"https://data.handyapi.com/bin/{bin}", headers=headers)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            raise Exception(f"API returned status code {response.status_code}")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://data.handyapi.com/bin/{bin}", headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    raise Exception(f"API returned status code {response.status}")
     except Exception as e:
         # Notify admins about the error
         asyncio.create_task(notify_admin(client, "/gen", e, message))
@@ -179,9 +181,9 @@ def setup_gen_handler(app: Client):
             return
 
         # Fetch BIN info
-        bin_info = get_bin_info(bin[:6], client, message)
-        if not bin_info or bin_info.get("Status") != "SUCCESS":
-            await client.send_message(message.chat.id, "**Invalid BIN provided ❌**")
+        bin_info = await get_bin_info(bin[:6], client, message)
+        if not bin_info or bin_info.get("Status") != "SUCCESS" or not isinstance(bin_info.get("Country"), dict):
+            await client.send_message(message.chat.id, "**❌Sorry Bro Invalid Bin Provided**")
             return
 
         bank = bin_info.get("Issuer")
@@ -231,7 +233,7 @@ def setup_gen_handler(app: Client):
 
                 await client.send_document(message.chat.id, document=file_name, caption=caption, parse_mode=ParseMode.MARKDOWN)
             except Exception as e:
-                await client.send_message(message.chat.id, f"**Sorry Bro API Response Unavailable**")
+                await client.send_message(message.chat.id, "**Sorry Bro API Response Unavailable**")
                 # Notify admins about the error
                 await notify_admin(client, "/gen", e, message)
             finally:
@@ -253,9 +255,9 @@ def setup_gen_handler(app: Client):
             return
 
         # Fetch BIN info again
-        bin_info = get_bin_info(bin[:6], client, callback_query.message)
-        if not bin_info or bin_info.get("Status") != "SUCCESS":
-            await callback_query.answer("BIN info retrieval failed!", show_alert=True)
+        bin_info = await get_bin_info(bin[:6], client, callback_query.message)
+        if not bin_info or bin_info.get("Status") != "SUCCESS" or not isinstance(bin_info.get("Country"), dict):
+            await callback_query.answer("❌Sorry Bro Invalid Bin Provided", show_alert=True)
             return
 
         bank = bin_info.get("Issuer")
