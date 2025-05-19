@@ -62,6 +62,7 @@ from .timexutils.times import setup_time_handler
 from .toolxutils.calc import setup_calc_handler
 from .toolxutils.news import setup_news_handler
 from .toolxutils.qr import setup_qr_handler
+from .toolxutils.vnote import setup_vnote_handler
 from .txtxutils.sptxt import setup_txt_handler
 from .webxutils.ws import setup_ws_handler
 from .webxutils.ss import setup_ss_handler
@@ -74,6 +75,7 @@ def setup_modules_handlers(app):
     # Register all imported handlers
     setup_ai_handler(app)
     setup_dep_handler(app)
+    setup_vnote_handler(app)
     setup_gem_handler(app)
     setup_gpt_handlers(app)
     setup_img_handler(app)
