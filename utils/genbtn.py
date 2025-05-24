@@ -6,30 +6,30 @@ from pyrogram.enums import ParseMode
 
 # Inline Keyboard Buttons Setup By @abirxdhackz & @ISmartDevs
 main_menu_keyboard = InlineKeyboardMarkup([
-    [InlineKeyboardButton("AI Utils", callback_data="ai_tools"), InlineKeyboardButton("CC Utils", callback_data="credit_cards")],
-    [InlineKeyboardButton("Crypto Utils", callback_data="crypto"), InlineKeyboardButton("Converte Utils", callback_data="converter")],
-    [InlineKeyboardButton("Decoders Utils", callback_data="decoders"), InlineKeyboardButton("Downloader Utils", callback_data="downloaders")],
-    [InlineKeyboardButton("Domain Tools", callback_data="domain_check"), InlineKeyboardButton("Education Utils", callback_data="education_utils")],
-    [InlineKeyboardButton("Qr Utils", callback_data="txtqr"), InlineKeyboardButton("ImageGen Utils", callback_data="aigen")],
-    [InlineKeyboardButton("Github Utils", callback_data="github"), InlineKeyboardButton("UserInfo Utils", callback_data="info")],
+    [InlineKeyboardButton("AI Tools", callback_data="ai_tools"), InlineKeyboardButton("Calculator", callback_data="calculator")],
+    [InlineKeyboardButton("CC Tools", callback_data="credit_cards"), InlineKeyboardButton("Crypto", callback_data="crypto")],
+    [InlineKeyboardButton("Converter", callback_data="converter"), InlineKeyboardButton("Decoders", callback_data="decoders")],
+    [InlineKeyboardButton("Downloaders", callback_data="downloaders"), InlineKeyboardButton("Domain Check", callback_data="domain_check")],
+    [InlineKeyboardButton("Education Utils", callback_data="education_utils"), InlineKeyboardButton("Editing Utils", callback_data="rembg")],
     [InlineKeyboardButton("Next ➡️", callback_data="next_1"), InlineKeyboardButton("Close ❌", callback_data="close")]
 ])
 
 second_menu_keyboard = InlineKeyboardMarkup([
-    [InlineKeyboardButton("Mail Utils", callback_data="mail_tools"), InlineKeyboardButton("Network Utils", callback_data="network_tools")],
-    [InlineKeyboardButton("Fake Address", callback_data="random_address"), InlineKeyboardButton("String Session", callback_data="string_session")],
-    [InlineKeyboardButton("Stripe Hunter", callback_data="stripe_keys"), InlineKeyboardButton("Sticker Utils", callback_data="sticker")],
-    [InlineKeyboardButton("Smart Clock", callback_data="time_date"), InlineKeyboardButton("Google Translate", callback_data="translate")],
-    [InlineKeyboardButton("Tempmail Tools", callback_data="tempmail"), InlineKeyboardButton("Text OCR", callback_data="text_ocr")],
+    [InlineKeyboardButton("Github Utils", callback_data="github"), InlineKeyboardButton("Info", callback_data="info")],
+    [InlineKeyboardButton("Mail Tools", callback_data="mail_tools"), InlineKeyboardButton("Network Tools", callback_data="network_tools")],
+    [InlineKeyboardButton("Random Address", callback_data="random_address"), InlineKeyboardButton("String Session", callback_data="string_session")],
+    [InlineKeyboardButton("Stripe Keys", callback_data="stripe_keys"), InlineKeyboardButton("Sticker", callback_data="sticker")],
+    [InlineKeyboardButton("Time Date", callback_data="time_date"), InlineKeyboardButton("Txt Spilt", callback_data="text_split")],
     [InlineKeyboardButton("Previous ⬅️", callback_data="previous_1"), InlineKeyboardButton("Next ➡️", callback_data="next_2")],
     [InlineKeyboardButton("Close ❌", callback_data="close")]
 ])
 
 third_menu_keyboard = InlineKeyboardMarkup([
-    [InlineKeyboardButton("Web Utils", callback_data="web_capture"), InlineKeyboardButton("Yt Utils", callback_data="yt_tools")],
-    [InlineKeyboardButton("Protectron Utils", callback_data="protectron_utils"), InlineKeyboardButton("SpiltText Utils", callback_data="text_split")],
-    [InlineKeyboardButton("Weather Utils", callback_data="weather"), InlineKeyboardButton("Smart Calculator", callback_data="calculator")],
-    [InlineKeyboardButton("GroupHelp", callback_data="admin"), InlineKeyboardButton("Editing Utils", callback_data="rembg")],
+    [InlineKeyboardButton("Translate", callback_data="translate"), InlineKeyboardButton("Temp Mail", callback_data="tempmail")],
+    [InlineKeyboardButton("Text OCR", callback_data="text_ocr"), InlineKeyboardButton("Web Capture", callback_data="web_capture")],
+    [InlineKeyboardButton("Yt Tools", callback_data="yt_tools"), InlineKeyboardButton("Qr Utils", callback_data="txtqr")],
+    [InlineKeyboardButton("ImageGen Utils", callback_data="aigen"), InlineKeyboardButton("Weather Utils", callback_data="weather")],
+    [InlineKeyboardButton("Protectron Utils", callback_data="protectron_utils"), InlineKeyboardButton("GroupHelp", callback_data="admin")],
     [InlineKeyboardButton("Previous ⬅️", callback_data="previous_2"), InlineKeyboardButton("Close ❌", callback_data="close")]
 ])
 
