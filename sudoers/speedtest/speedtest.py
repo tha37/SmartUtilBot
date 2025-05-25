@@ -132,7 +132,6 @@ async def speedtest_handler(client: Client, message: Message):
 
 # Setup function to add the speed test handler
 def setup_speed_handler(app: Client):
-    LOGGER.info("Adding speedtest handler")
     app.add_handler(MessageHandler(
         speedtest_handler,
         filters.command("speedtest", prefixes=COMMAND_PREFIX) & (filters.private | filters.group)
