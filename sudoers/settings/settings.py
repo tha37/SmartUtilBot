@@ -7,7 +7,7 @@ from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 import os
 from dotenv import load_dotenv
 from config import COMMAND_PREFIX, OWNER_ID
-from database import auth_admins
+from core import auth_admins
 from utils import LOGGER
 
 # Load The Environment Variables
