@@ -61,6 +61,7 @@ from .stikxutils.quote import setup_q_handler
 from .timexutils.times import setup_time_handler
 from .toolxutils.calc import setup_calc_handler
 from .toolxutils.news import setup_news_handler
+from .toolxutil.rs import setup_rs_handler
 from .toolxutils.qr import setup_qr_handler
 from .toolxutils.vnote import setup_vnote_handler
 from .txtxutils.sptxt import setup_txt_handler
@@ -135,6 +136,7 @@ def setup_modules_handlers(app):
     setup_calc_handler(app)
     setup_news_handler(app)
     setup_qr_handler(app)
+    setup_rs_handler(app)
     setup_txt_handler(app)
     setup_ws_handler(app)
     setup_ss_handler(app)
