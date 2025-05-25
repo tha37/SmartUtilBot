@@ -19,7 +19,6 @@ telegraph.create_account(
 )
 
 def setup_logs_handler(app: Client):
-    LOGGER.info("Setting up logs handler")
 
     async def create_telegraph_page(content: str) -> list:
         """Create Telegraph pages with the given content, each under 20 KB, and return list of URLs"""
