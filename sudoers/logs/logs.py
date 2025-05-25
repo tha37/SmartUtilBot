@@ -5,13 +5,10 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.enums import ParseMode
-import logging
-from config import OWNER_IDS, COMMAND_PREFIX
+from utils import LOGGER
+from config import OWNER_ID, COMMAND_PREFIX
+from core import auth_admins
 from telegraph import Telegraph
-
-# Setup LOGGER
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Initialize Telegraph client
 telegraph = Telegraph()
@@ -22,7 +19,7 @@ telegraph.create_account(
 )
 
 def setup_logs_handler(app: Client):
-    logger.info("Setting up logs handler")
+    LOGGER.info("Setting up logs handler")
 
     async def create_telegraph_page(content: str) -> list:
         """Create Telegraph pages with the given content, each under 20 KB, and return list of URLs"""
@@ -67,18 +64,19 @@ def setup_logs_handler(app: Client):
 
             return pages
         except Exception as e:
-            logger.error(f"Failed to create Telegraph page: {e}")
+            LOGGER.error(f"Failed to create Telegraph page: {e}")
             return []
 
     @app.on_message(filters.command(["logs"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
     async def logs_command(client, message):
         user_id = message.from_user.id
-        logger.info(f"Logs command from user {user_id}")
-        if user_id not in OWNER_IDS:
-            logger.info("User not admin, sending restricted message")
+        auth_admins_data = auth_admins.find({}, {"user_id": 1, "_id": 0})
+        AUTH_ADMIN_IDS = [admin["user_id"] for admin in auth_admins_data]
+        if user_id != OWNER_ID and user_id not in AUTH_ADMIN_IDS:
+            LOGGER.info("User not admin or owner, sending restricted message")
             await client.send_message(
                 chat_id=message.chat.id,
-                text="**🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️**",
+                text="**✘Kids Not Allowed To Do This↯**",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
@@ -101,7 +99,7 @@ def setup_logs_handler(app: Client):
             )
             return
 
-        logger.info("User is admin, sending log document")
+        LOGGER.info("User is admin or owner, sending log document")
         await client.send_document(
             chat_id=message.chat.id,
             document="botlog.txt",
@@ -131,15 +129,17 @@ def setup_logs_handler(app: Client):
     async def handle_callback(client: Client, query: CallbackQuery):
         user_id = query.from_user.id
         data = query.data
-        logger.info(f"Callback query from user {user_id}, data: {data}")
-        if user_id not in OWNER_IDS:
-            logger.info("User not admin, sending callback answer")
+        LOGGER.info(f"Callback query from user {user_id}, data: {data}")
+        auth_admins_data = auth_admins.find({}, {"user_id": 1, "_id": 0})
+        AUTH_ADMIN_IDS = [admin["user_id"] for admin in auth_admins_data]
+        if user_id != OWNER_ID and user_id not in AUTH_ADMIN_IDS:
+            LOGGER.info("User not admin or owner, sending callback answer")
             await query.answer(
-                text="🚫 Hey Gay 🏳️‍🌈 This Is Not For You This Only For Males👱‍♂️",
+                text="✘Kids Not Allowed To Do This↯",
                 show_alert=True
             )
             return
-        logger.info("User is admin, processing callback")
+        LOGGER.info("User is admin or owner, processing callback")
         if data == "close_doc$":
             await query.message.delete()
             await query.answer()
@@ -197,7 +197,7 @@ def setup_logs_handler(app: Client):
                         parse_mode=ParseMode.MARKDOWN
                     )
             except Exception as e:
-                logger.error(f"Error uploading to Telegraph: {e}")
+                LOGGER.error(f"Error uploading to Telegraph: {e}")
                 await query.message.edit_caption(
                     caption="**✘Sorry Bro Telegraph API Dead↯**",
                     parse_mode=ParseMode.MARKDOWN
@@ -208,7 +208,7 @@ def setup_logs_handler(app: Client):
 
     async def send_logs_page(client: Client, chat_id: int):
         """Send the last 20 lines of botlog.txt, respecting Telegram's 4096-character limit"""
-        logger.info(f"Sending latest logs to chat {chat_id}")
+        LOGGER.info(f"Sending latest logs to chat {chat_id}")
         if not os.path.exists("botlog.txt"):
             await client.send_message(
                 chat_id=chat_id,
@@ -234,7 +234,7 @@ def setup_logs_handler(app: Client):
                 ])
             )
         except Exception as e:
-            logger.error(f"Error sending logs: {e}")
+            LOGGER.error(f"Error sending logs: {e}")
             await client.send_message(
                 chat_id=chat_id,
                 text="**✘Sorry There Was A Issue On My Server↯**",
