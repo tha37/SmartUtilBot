@@ -12,7 +12,6 @@ from core import auth_admins
 from utils import LOGGER
 
 def setup_restart_handler(app: Client):
-    LOGGER.info("Setting up restart handler")
 
     @app.on_message(filters.command(["restart", "reboot", "reload"], prefixes=COMMAND_PREFIX) & (filters.private | filters.group))
     async def restart(client, message):
