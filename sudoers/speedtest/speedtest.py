@@ -1,5 +1,5 @@
-#Copyright @ISmartDevs
-#Channel t.me/TheSmartDev
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
 import asyncio
 import subprocess
 import json
@@ -8,7 +8,9 @@ from pyrogram import Client, filters
 from pyrogram.handlers import MessageHandler
 from pyrogram.enums import ParseMode, ChatType
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
-from config import OWNER_IDS, COMMAND_PREFIX, UPDATE_CHANNEL_URL
+from config import OWNER_ID, COMMAND_PREFIX, UPDATE_CHANNEL_URL
+from core import auth_admins
+from utils import LOGGER
 
 # Helper function to convert speed to human-readable format
 def speed_convert(size: float, is_mbps: bool = False) -> str:
@@ -44,6 +46,7 @@ def run_speedtest():
         data = json.loads(result.stdout)
         return data
     except Exception as e:
+        LOGGER.error(f"Speedtest error: {e}")
         return {"error": str(e)}
 
 # Async function to handle speed test logic
@@ -53,6 +56,7 @@ async def run_speedtest_task(client: Client, chat_id: int, status_message: Messa
         try:
             result = await asyncio.get_running_loop().run_in_executor(pool, run_speedtest)
         except Exception as e:
+            LOGGER.error(f"Error running speedtest task: {e}")
             await status_message.edit_text("<b>✘ Speed Test API Dead ↯</b>", parse_mode=ParseMode.HTML)
             return
 
@@ -104,10 +108,14 @@ async def run_speedtest_task(client: Client, chat_id: int, status_message: Messa
 
 # Handler for speed test command
 async def speedtest_handler(client: Client, message: Message):
-    if message.from_user.id not in OWNER_IDS:
+    user_id = message.from_user.id
+    auth_admins_data = auth_admins.find({}, {"user_id": 1, "_id": 0})
+    AUTH_ADMIN_IDS = [admin["user_id"] for admin in auth_admins_data]
+    if user_id != OWNER_ID and user_id not in AUTH_ADMIN_IDS:
+        LOGGER.info("User not admin or owner, sending restricted message")
         await client.send_message(
             chat_id=message.chat.id,
-            text="<b>✘ Access Denied: Restricted to authorized users only ↯</b>",
+            text="<b>✘ Kids Not Allowed To Do This ↯</b>",
             parse_mode=ParseMode.HTML
         )
         return
@@ -124,6 +132,7 @@ async def speedtest_handler(client: Client, message: Message):
 
 # Setup function to add the speed test handler
 def setup_speed_handler(app: Client):
+    LOGGER.info("Adding speedtest handler")
     app.add_handler(MessageHandler(
         speedtest_handler,
         filters.command("speedtest", prefixes=COMMAND_PREFIX) & (filters.private | filters.group)
