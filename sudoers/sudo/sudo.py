@@ -11,7 +11,6 @@ from utils import LOGGER
 from pyrogram.errors import UserIdInvalid, UsernameInvalid, PeerIdInvalid
 
 def setup_sudo_handler(app: Client):
-    LOGGER.info("Setting up sudo handler")
 
     async def get_auth_admins():
         """Retrieve all authorized admins from MongoDB."""
