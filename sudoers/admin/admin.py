@@ -303,7 +303,6 @@ def setup_admin_handler(app: Client):
     Set up command handlers for the Pyrogram bot.
     This includes specific commands like /broadcast and /stats, as well as general activity tracking.
     """
-    LOGGER.info("Setting up admin handler")
     app.add_handler(
         MessageHandler(
             broadcast_handler,
