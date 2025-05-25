@@ -131,7 +131,6 @@ def build_menu(page=0):
 
 def setup_settings_handler(app: Client):
     """Setup the settings handler for the Pyrogram app."""
-    LOGGER.info("Setting up settings handler")
 
     @validate_message
     async def debug_all(client: Client, message: Message):
