@@ -75,6 +75,7 @@
 - **Broadcast Admin:** ʙʀᴏᴀᴅᴄᴀꜱᴛ_✘_ᴀᴅᴍɪɴ↯  
 - **Restart Me:** ʀᴇꜱᴛᴀʀᴛ_✘_ᴍᴇ↯  
 - **Change Entire Database Settings:** ᴄʜᴀɴɢᴇ_✘_ᴇɴᴛɪʀᴇ_ᴅᴀᴛᴀʙᴀꜱᴇ↯
+- **And More Features Just Host & See**↯
 
 ## Requirements 💥🌟
 
@@ -258,38 +259,53 @@ Deploying **SmartUtilBot** to Heroku is a straightforward process. Follow these 
 
 1. `GOOGLE_API_KEY` - For Google Gemini AI features, obtain from [Google AI Studio](https://aistudio.google.com/). 🧠
 2. `GROQ_API_KEY` - For Groq AI models, obtain from [Groq API Console](https://console.groq.com/). 🧠
-3. `ADMIN_IDS` - Comma-separated Telegram user IDs for admin access, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👑
-4. `OWNER_IDS` - Comma-separated Telegram user IDs for owner access, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👑
+3. `OWNER_ID` - Telegram user ID for owner access, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👑
 
 ### Optional Vars For The Utils ❄️
 
-1. `SPOTIFY_CLIENT_ID` - For Spotify features, obtain from [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/). 🎶
-2. `SPOTIFY_CLIENT_SECRET` - For Spotify features, obtain from [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/). 🎶
-3. `LOCATIONIQ_API_KEY` - For location-based features, obtain from [LocationIQ](https://locationiq.com/). 📍
-4. `IPINFO_API_TOKEN` - For IP geolocation, obtain from [IPinfo](https://ipinfo.io/). 🌍
-5. `NEWS_API_KEY` - For news updates, obtain from the specified news API provider. 📰
-6. `BIN_KEY` - For BIN lookup, obtain from [HandyAPI](https://handyapi.com/). 💳
-7. `UPDATE_CHANNEL_URL` - Telegram channel URL for bot updates. 📢
-8. `DEVELOPER_USER_ID` - Telegram user ID of the bot developer, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👨‍💻
-9. `PROFILE_ERROR_URL` - Fallback image URL for users without a profile photo. 🖼️
-10. `OCR_WORKER_URL` - Custom OCR API endpoint for text extraction. 📄
-11. `TEXT_API_URL` - Custom text processing API endpoint. 📝
-12. `IMAGE_API_URL` - Custom image processing API endpoint. 🖼️
-13. `YT_COOKIES_PATH` - Path to YouTube cookies file for media downloads (default: `SmartUtilBot/cookies.txt`). 🍪
-14. `CC_SCRAPPER_LIMIT` - Limit for credit card scraping (default: 5000). 💳
-15. `SUDO_CCSCR_LIMIT` - Sudo user credit card scraping limit (default: 10000). 💳
-16. `MULTI_CCSCR_LIMIT` - Multi-user credit card scraping limit (default: 2000). 💳
-17. `MAIL_SCR_LIMIT` - Email scraping limit (default: 10000). 📧
-18. `SUDO_MAILSCR_LIMIT` - Sudo user email scraping limit (default: 15000). 📧
-19. `CC_GEN_LIMIT` - Credit card generation limit (default: 2000). 💳
-20. `MULTI_CCGEN_LIMIT` - Multi-user credit card generation limit (default: 5000). 💳
-21. `DOMAIN_CHK_LIMIT` - Domain check limit (default: 20). 🌐
-22. `PROXY_CHECK_LIMIT` - Proxy check limit (default: 20). 🛡️
-23. `IMGAI_SIZE_LIMIT` - Max image size for AI processing (default: 5MB). 🖼️
-24. `MAX_TXT_SIZE` - Max text file size (default: 15MB). 📝
-25. `MAX_VIDEO_SIZE` - YouTube Downloader Max video file size (default: 2GB). 📹
-26. `VIDEO_RESOLUTION`' - YouTube Downloader video resolution (default: 1280x720). 📺
-27. `COMMAND_PREFIX` - Command prefixes (default: `!|.|#|,|/`).
+1. `LOCATIONIQ_API_KEY` - For location-based features, obtain from [LocationIQ](https://locationiq.com/). 📍
+2. `IPINFO_API_TOKEN` - For IP geolocation, obtain from [IPinfo](https://ipinfo.io/). 🌍
+3. `NEWS_API_KEY` - For news updates, obtain from the specified news API provider. 📰
+4. `BIN_KEY` - For BIN lookup, obtain from [HandyAPI](https://handyapi.com/). 💳
+5. `UPDATE_CHANNEL_URL` - Telegram channel URL for bot updates. 📢
+6. `DEVELOPER_USER_ID` - Telegram user ID of the bot developer, obtain via [@ItsSmartToolBot](https://t.me/ItsSmartToolBot) with `/info`. 👨‍💻
+7. `PROFILE_ERROR_URL` - Fallback image URL for users without a profile photo. 🖼️
+8. `OCR_WORKER_URL` - Custom OCR API endpoint for text extraction. 📄
+9. `TEXT_API_URL` - Custom text processing API endpoint. 📝
+10. `IMAGE_API_URL` - Custom image processing API endpoint. 🖼️
+11. `YT_COOKIES_PATH` - Path to YouTube cookies file for media downloads (default: `SmartUtilBot/cookies/ItsSmartToolBot.txt`). 🍪
+12. `CC_SCRAPPER_LIMIT` - Limit for credit card scraping (default: 5000). 💳
+13. `SUDO_CCSCR_LIMIT` - Sudo user credit card scraping limit (default: 10000). 💳
+14. `MULTI_CCSCR_LIMIT` - Multi-user credit card scraping limit (default: 2000). 💳
+15. `MAIL_SCR_LIMIT` - Email scraping limit (default: 10000). 📧
+16. `SUDO_MAILSCR_LIMIT` - Sudo user email scraping limit (default: 15000). 📧
+17. `CC_GEN_LIMIT` - Credit card generation limit (default: 2000). 💳
+18. `MULTI_CCGEN_LIMIT` - Multi-user credit card generation limit (default: 5000). 💳
+19. `DOMAIN_CHK_LIMIT` - Domain check limit (default: 20). 🌐
+20. `PROXY_CHECK_LIMIT` - Proxy check limit (default: 20). 🛡️
+21. `IMGAI_SIZE_LIMIT` - Max image size for AI processing (default: 5MB). 🖼️
+22. `MAX_TXT_SIZE` - Max text file size (default: 15MB). 📝
+23. `MAX_VIDEO_SIZE` - YouTube Downloader Max video file size (default: 2GB). 📹
+24. `VIDEO_RESOLUTION`' - YouTube Downloader video resolution (default: 1280x720). 📺
+25. `COMMAND_PREFIX` - Command prefixes (default: `!|.|#|,|/`).
+
+## Admin Commands / Sudo Commands
+
+- **gban** - Ban a user from the bot forever (for spam or policy violation)
+- **gunban** - Unban a user from the bot database
+- **send** - Send broadcast to users using `Client.forward_message` method
+- **broadcast** - Broadcast sent to users using `Client.copy_message`
+- **stats** - See bot's statistics report
+- **status** - See bot's statistics report
+- **repport** - See bot's statistics report
+- **logs** - View all console logs
+- **restart** - Restart the bot
+- **reload** - Restart the bot
+- **Reboot** - Restart the bot
+- **settings** - Change all bot variables
+- **auth** - Promote a user to the bot admin list
+- **unauth** - Remove a user from the bot admin list
+- **getadmins** - Get all admins list of the bot
 
 ## Handling YouTube Download Errors with Cookies 🍪
 
@@ -308,7 +324,7 @@ To avoid errors related to YouTube sign-in requirements or bot protection, using
    - Use the cookie extension to export cookies in **Netscape format**. 📄
 
 4. **Save the Cookies File**:
-   - Save the exported cookies as `ItsSmartToolBot.txt` in the `SmartUtilBot/ItsSmartToolBot.txt` directory. 📂
+   - Save the exported cookies as `ItsSmartToolBot.txt` in the `SmartUtilBot/cookies/ItsSmartToolBot.txt` directory. 📂
 
 ### Managing Cookies 💡
 
