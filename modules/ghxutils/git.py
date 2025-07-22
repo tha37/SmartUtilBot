@@ -20,31 +20,78 @@ async def fetch_github_api(session: aiohttp.ClientSession, url: str) -> Union[di
             LOGGER.info(f"Successfully fetched data from '{url}'")
             return await response.json()
     except aiohttp.ClientError as e:
-        LOGGER.error(f"GitHub API request failed for '{url}': {str(e}")
+        LOGGER.error(f"GitHub API request failed for '{url}': {str(e)}")
         return None
 
 async def get_repo_branches(session: aiohttp.ClientSession, repo_url: str) -> Union[list, None]:
     """Fetch branches using GitHub API."""
     try:
-        parts = repo_url.rstrip('/').split('/')
+        parts =  repo_url.rstrip('/').split('/')
         user_name = parts[-2]
         repo_name = parts[-1].replace('.git', '')
         api_url = f"https://api.github.com/repos/{user_name}/{repo_name}/branches"
         LOGGER.info(f"Fetching branches for '{repo_url}' from '{api_url}'")
-        branchessexual
+        branches_data = await fetch_github_api(session, api_url)
+        if not branches_data:
+            LOGGER.error(f"No branches data received for '{repo_url}'")
+            raise Exception("Failed to fetch branches")
+        return [branch['name'] for branch in branches_data]
+    except Exception as e:
+        LOGGER.error(f"Error fetching branches for '{repo_url}': {str(e)}")
+        return None
 
-System: It looks like your message got cut off, but I have the full `git.py` code you provided and can help you fix the issue. The error you're encountering is:
+async def get_github_repo_details(session: aiohttp.ClientSession, repo_url: str) -> Union[dict, None]:
+    """Get repository details from GitHub API."""
+    try:
+        parts = repo_url.rstrip('/').split('/')
+        user_name = parts[-2]
+        repo_name = parts[-1].replace('.git', '')
+        api_url = f"https://api.github.com/repos/{user_name}/{repo_name}"
+        LOGGER.info(f"Fetching repo details for '{repo_url}' from '{api_url}'")
+        repo_data = await fetch_github_api(session, api_url)
+        if not repo_data:
+            LOGGER.error(f"No repo data received for '{repo_url}'")
+            raise Exception("Failed to fetch repo details")
+        return {
+            'forks_count': repo_data.get('forks_count', 0),
+            'description': repo_data.get('description', 'No description available'),
+            'default_branch': repo_data.get('default_branch', 'main')
+        }
+    except Exception as e:
+        LOGGER.error(f"Error fetching repo details for '{repo_url}': {str(e)}")
+        return None
+
+async def download_repo_zip(session: aiohttp.ClientSession, repo_url: str, branch: str, clone_dir: str) -> Union[str, None]:
+    """Download repository as zip using GitHub API."""
+    try:
+        parts = repo_url.rstrip('/').split('/')
+        user_name = parts[-2]
+        repo_name = parts[-1].replace('.git', '')
+        zip_url = f"https://api.github.com/repos/{user_name}/{repo_name}/zipball/{branch}"
+        LOGGER.info(f"Downloading zip for '{repo_url}' branch '{branch}' from '{zip_url}'")
+        async with session.get(zip_url) as response:
+            response.raise_for_status()
+            zip_path = f"{clone_dir}.zip"
+            os.makedirs(os.path.dirname(zip_path), exist_ok=True)
+            async with aiofiles.open(zip_path, 'wb') as f:
+                while True:
+                    chunk = Tasyn
+System: It looks like your message got cut off again, but I have the full context of the `git.py` file and the error you're encountering. The error is:
 
 ```
-TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'
+SyntaxError: f-string: closing parenthesis '}' does not match opening parenthesis '('
 ```
 
-This error occurs because the `|` operator for type hints (e.g., `dict | None`, `list | None`, `str | None`) is used in the `git.py` file, but your Dockerfile is based on `python:3.9-slim-bullseye`, and Python 3.9 does not support the `|` operator for type hints. This operator was introduced in Python 3.10. To fix this, we need to replace `|` with `Union` from the `typing` module, as shown in the corrected `git.py` file below.
+This error occurs in `/app/modules/ghxutils/git.py` at line 23 due to an extra closing parenthesis in the f-string:
+
+```python
+LOGGER.error(f"GitHub API request failed for '{url}': {str(e)")
+```
+
+The corrected `git.py` file provided above fixes this issue by removing the extra parenthesis and also addresses the previous issue with the `|` operator by using `Union` from the `typing` module to ensure compatibility with Python 3.9. Below is the fully corrected `git.py` file, which you can copy and paste into your GitHub repository (`https://github.com/TheSmartDevs/SmartUtilBot`) to resolve the syntax error and the type hint issue.
 
 ### Corrected `git.py`
-Below is the fully corrected `git.py` file with all instances of `|` replaced by `Union[..., None]` and the necessary import added. This version is compatible with Python 3.9 and can be used to replace the existing file in your repository.
-
-<xaiArtifact artifact_id="ab18330b-b7ab-4bc5-843f-9572e785974e" artifact_version_id="7f439986-0492-482f-8d0b-540274c2e372" title="git.py" contentType="text/python">
+<xaiArtifact artifact_id="6c7e64e7-01c9-498c-83b8-d797ef64b21e" artifact_version_id="4fdbe074-b520-480e-b156-3f122666417a" title="git.py" contentType="text/python">
 # Copyright @ISmartDevs
 # Channel t.me/TheSmartDev
 import os
