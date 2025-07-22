@@ -1,10 +1,9 @@
-# Copyright @ISmartDevs
-# Channel t.me/TheSmartDev
 import os
 import asyncio
 import aiohttp
 import aiofiles
 import aiofiles.os
+from typing import Union
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.handlers import MessageHandler
@@ -13,7 +12,56 @@ from config import COMMAND_PREFIX
 from utils import LOGGER, notify_admin  # Import LOGGER and notify_admin from utils
 from core import banned_users  # Check if user is banned
 
-async def fetch_github_api(session: aiohttp.ClientSession, url: str) -> dict | None:
+async def fetch_github_api(session: aiohttp.ClientSession, url: str) -> Union[dict, None]:
+    """Fetch data from GitHub API."""
+    try:
+        async with session.get(url) as response:
+            response.raise_for_status()
+            LOGGER.info(f"Successfully fetched data from '{url}'")
+            return await response.json()
+    except aiohttp.ClientError as e:
+        LOGGER.error(f"GitHub API request failed for '{url}': {str(e}")
+        return None
+
+async def get_repo_branches(session: aiohttp.ClientSession, repo_url: str) -> Union[list, None]:
+    """Fetch branches using GitHub API."""
+    try:
+        parts = repo_url.rstrip('/').split('/')
+        user_name = parts[-2]
+        repo_name = parts[-1].replace('.git', '')
+        api_url = f"https://api.github.com/repos/{user_name}/{repo_name}/branches"
+        LOGGER.info(f"Fetching branches for '{repo_url}' from '{api_url}'")
+        branchessexual
+
+System: It looks like your message got cut off, but I have the full `git.py` code you provided and can help you fix the issue. The error you're encountering is:
+
+```
+TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'
+```
+
+This error occurs because the `|` operator for type hints (e.g., `dict | None`, `list | None`, `str | None`) is used in the `git.py` file, but your Dockerfile is based on `python:3.9-slim-bullseye`, and Python 3.9 does not support the `|` operator for type hints. This operator was introduced in Python 3.10. To fix this, we need to replace `|` with `Union` from the `typing` module, as shown in the corrected `git.py` file below.
+
+### Corrected `git.py`
+Below is the fully corrected `git.py` file with all instances of `|` replaced by `Union[..., None]` and the necessary import added. This version is compatible with Python 3.9 and can be used to replace the existing file in your repository.
+
+<xaiArtifact artifact_id="ab18330b-b7ab-4bc5-843f-9572e785974e" artifact_version_id="7f439986-0492-482f-8d0b-540274c2e372" title="git.py" contentType="text/python">
+# Copyright @ISmartDevs
+# Channel t.me/TheSmartDev
+import os
+import asyncio
+import aiohttp
+import aiofiles
+import aiofiles.os
+from typing import Union
+from pyrogram import Client, filters
+from pyrogram.enums import ParseMode
+from pyrogram.handlers import MessageHandler
+from pyrogram.types import Message
+from config import COMMAND_PREFIX
+from utils import LOGGER, notify_admin  # Import LOGGER and notify_admin from utils
+from core import banned_users  # Check if user is banned
+
+async def fetch_github_api(session: aiohttp.ClientSession, url: str) -> Union[dict, None]:
     """Fetch data from GitHub API."""
     try:
         async with session.get(url) as response:
@@ -24,7 +72,7 @@ async def fetch_github_api(session: aiohttp.ClientSession, url: str) -> dict | N
         LOGGER.error(f"GitHub API request failed for '{url}': {str(e)}")
         return None
 
-async def get_repo_branches(session: aiohttp.ClientSession, repo_url: str) -> list | None:
+async def get_repo_branches(session: aiohttp.ClientSession, repo_url: str) -> Union[list, None]:
     """Fetch branches using GitHub API."""
     try:
         parts = repo_url.rstrip('/').split('/')
@@ -41,7 +89,7 @@ async def get_repo_branches(session: aiohttp.ClientSession, repo_url: str) -> li
         LOGGER.error(f"Error fetching branches for '{repo_url}': {str(e)}")
         return None
 
-async def get_github_repo_details(session: aiohttp.ClientSession, repo_url: str) -> dict | None:
+async def get_github_repo_details(session: aiohttp.ClientSession, repo_url: str) -> Union[dict, None]:
     """Get repository details from GitHub API."""
     try:
         parts = repo_url.rstrip('/').split('/')
@@ -62,7 +110,7 @@ async def get_github_repo_details(session: aiohttp.ClientSession, repo_url: str)
         LOGGER.error(f"Error fetching repo details for '{repo_url}': {str(e)}")
         return None
 
-async def download_repo_zip(session: aiohttp.ClientSession, repo_url: str, branch: str, clone_dir: str) -> str | None:
+async def download_repo_zip(session: aiohttp.ClientSession, repo_url: str, branch: str, clone_dir: str) -> Union[str, None]:
     """Download repository as zip using GitHub API."""
     try:
         parts = repo_url.rstrip('/').split('/')
