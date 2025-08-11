@@ -1,22 +1,50 @@
 #Copyright @ISmartDevs
 #Channel t.me/TheSmartDev
-from misc import handle_callback_query
+from pyrogram import Client, errors
+from flask import Flask, request, abort
 from utils import LOGGER
-from modules import setup_modules_handlers
-from sudoers import setup_sudoers_handlers
-from core import setup_start_handler
-from app import app  
-from user import user
+from config import (
+    API_ID,
+    API_HASH,
+    BOT_TOKEN
+)
 
-# CONNECT ALL MODULES WITH BOT AND USER CLIENT
-setup_modules_handlers(app)
-setup_sudoers_handlers(app)
-setup_start_handler(app)  
+# Initialize Flask app
+web_app = Flask(__name__)
 
-@app.on_callback_query()
-async def handle_callback(client, callback_query):
-    await handle_callback_query(client, callback_query)
+# Initialize Pyrogram Client
+app = Client(
+    "SmartTools",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN,
+    workers=1000
+)
 
-LOGGER.info("Bot Successfully Started! 💥")
-user.start()
-app.run()
+# Handle incoming updates from Telegram
+@web_app.route(f"/{BOT_TOKEN}", methods=["POST"])
+async def handle_update():
+    if request.json:
+        # Pass the update to Pyrogram
+        update = request.json
+        try:
+            await app.process_update(update)
+        except errors.RPCError as e:
+            LOGGER.error(f"Error processing update: {e}")
+            abort(500)
+    return "OK", 200
+
+# Set Webhook on app startup
+def set_webhook():
+    webhook_url = f"https://your-app-name.railway.app/{BOT_TOKEN}" # Replace with your Railway app URL
+    try:
+        app.set_webhook(url=webhook_url)
+        LOGGER.info(f"Webhook set to {webhook_url}")
+    except errors.RPCError as e:
+        LOGGER.error(f"Failed to set webhook: {e}")
+
+# Run the Flask app
+if __name__ == "__main__":
+    app.start()
+    set_webhook()
+    web_app.run(host="0.0.0.0", port=8000) # Use the port assigned by Railway
