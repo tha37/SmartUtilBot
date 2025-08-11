@@ -22,3 +22,4 @@ pydub
 moviepy
 speedtest-cli
 lxml 
+flask
