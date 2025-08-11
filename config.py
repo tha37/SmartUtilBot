@@ -24,6 +24,9 @@ API_HASH = get_env_or_default("API_HASH", "Your_API_HASH_Here")
 BOT_TOKEN = get_env_or_default("BOT_TOKEN", "Your_BOT_TOKEN_Here")
 SESSION_STRING = get_env_or_default("SESSION_STRING", "Your_SESSION_STRING_Here")
 
+# Check if WEBHOOK mode is enabled. Default to False for local testing.
+WEBHOOK = get_env_or_default("WEBHOOK", False, lambda x: x.lower() in ("true", "1", "t"))
+
 # ADMINS AND SUDO USERS FOR BROADCAST AND OTHER SUDO WORKS
 OWNER_ID = get_env_or_default("OWNER_ID", "Your_OWNER_ID_Here", int)
 DEVELOPER_USER_ID = get_env_or_default("DEVELOPER_USER_ID", "Your_DEVELOPER_USER_ID_Here", int)
