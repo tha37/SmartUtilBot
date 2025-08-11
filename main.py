@@ -1,4 +1,5 @@
-# main.py
+#Copyright @ISmartDevs
+#Channel t.me/TheSmartDev
 from misc import handle_callback_query
 from utils import LOGGER
 from modules import setup_modules_handlers
@@ -6,9 +7,9 @@ from sudoers import setup_sudoers_handlers
 from core import setup_start_handler
 from app import app
 from user import user
-from flask import Flask, request, abort # Import Flask
+from flask import Flask, request, abort
+from pyrogram import errors
 import asyncio
-from pyrogram import Client, errors
 
 # Flask app initialization
 web_app = Flask(__name__)
@@ -22,31 +23,38 @@ setup_start_handler(app)
 async def handle_callback(client, callback_query):
     await handle_callback_query(client, callback_query)
 
-LOGGER.info("Bot Successfully Started! 💥")
-
 # Handle Webhook requests
 @web_app.route("/", methods=["POST"])
 async def telegram_webhook():
     if request.json:
         # Pass the update to Pyrogram
-        async with app:
+        try:
             await app.process_update(request.json)
-        return "OK", 200
-    else:
-        abort(400)
+        except errors.RPCError as e:
+            LOGGER.error(f"Error processing update: {e}")
+            abort(500)
+    return "OK", 200
 
 # Set Webhook URL
 async def set_webhook():
     webhook_url = f"https://worker-production-34b4.up.railway.app/" # Replace with your Railway URL
     try:
-        # Use pyrogram's set_webhook method
-        async with app:
-            await app.set_webhook(url=webhook_url)
+        await app.set_webhook(url=webhook_url)
         LOGGER.info(f"Webhook set to {webhook_url}")
     except errors.RPCError as e:
         LOGGER.error(f"Failed to set webhook: {e}")
 
-# Run the Flask app
+# This part needs to be simplified to avoid multiple loops
 if __name__ == "__main__":
-    asyncio.run(set_webhook())
+    # Start the Pyrogram client first
+    app.start()
+    
+    # Set the webhook within the same event loop
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(set_webhook())
+    
+    # Run the Flask app
     web_app.run(host="0.0.0.0", port=8000)
+    
+    # Finally, stop the pyrogram client
+    app.stop()
