@@ -23,4 +23,5 @@ moviepy
 speedtest-cli
 lxml 
 flask
-pip install -r
+
+
