@@ -1,4 +1,4 @@
-pyrogram
+pyrogram>=2.0.106
 tgcrypto
 requests
 aiohttp
@@ -21,7 +21,5 @@ psutil
 pydub
 moviepy
 speedtest-cli
-lxml 
+lxml
 flask
-
-
